@@ -7,7 +7,7 @@ use twilight_model::id::{
 
 use crate::{
     structs::Database,
-    utility::{Guild, Result},
+    types::{database::Guild, Result},
 };
 
 impl Database {

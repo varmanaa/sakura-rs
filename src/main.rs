@@ -1,4 +1,5 @@
 mod structs;
+mod types;
 mod utility;
 
 fn main() {

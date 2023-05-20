@@ -47,5 +47,3 @@ pub struct InviteCheckCreatePayload {
     pub good_invites: i64,
     pub bad_invites: i64,
 }
-
-pub type Result<T> = std::result::Result<T, Error>;

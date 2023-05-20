@@ -8,7 +8,7 @@ use std::str::FromStr;
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use tokio_postgres::{Config, NoTls};
 
-use crate::utility::{Result, DATABASE_URL};
+use crate::{types::Result, utility::DATABASE_URL};
 
 pub struct Database {
     pool: Pool,

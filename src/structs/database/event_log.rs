@@ -3,7 +3,10 @@ use tokio_postgres::types::ToSql;
 
 use crate::{
     structs::Database,
-    utility::{Event, GuildCreatePayload, GuildDeletePayload, InviteCheckCreatePayload, Result},
+    types::{
+        database::{Event, GuildCreatePayload, GuildDeletePayload, InviteCheckCreatePayload},
+        Result,
+    },
 };
 
 impl Database {
