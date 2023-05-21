@@ -1,3 +1,2 @@
-mod database;
-
-pub use database::Database;
+pub mod cache;
+pub mod database;

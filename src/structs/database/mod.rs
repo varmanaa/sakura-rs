@@ -8,11 +8,10 @@ use std::str::FromStr;
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
 use tokio_postgres::{Config, NoTls};
 
-use crate::{types::Result, utility::DATABASE_URL};
-
-pub struct Database {
-    pool: Pool,
-}
+use crate::{
+    types::{database::Database, Result},
+    utility::DATABASE_URL,
+};
 
 impl Database {
     pub async fn create_tables(&self) -> Result<()> {

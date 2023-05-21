@@ -5,9 +5,9 @@ use twilight_model::id::{
     Id,
 };
 
-use crate::{
-    structs::Database,
-    types::{database::Guild, Result},
+use crate::types::{
+    database::{Database, Guild},
+    Result,
 };
 
 impl Database {

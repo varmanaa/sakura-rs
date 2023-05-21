@@ -1,7 +1,7 @@
 use time::OffsetDateTime;
 use tokio_postgres::types::ToSql;
 
-use crate::{structs::Database, types::Result};
+use crate::types::{database::Database, Result};
 
 impl Database {
     pub async fn insert_invite(

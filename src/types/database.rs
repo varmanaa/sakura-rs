@@ -1,3 +1,4 @@
+use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
 use tokio_postgres::types::{FromSql, ToSql};
@@ -6,7 +7,9 @@ use twilight_model::id::{
     Id,
 };
 
-use crate::utility::Error;
+pub struct Database {
+    pub pool: Pool,
+}
 
 #[derive(Clone, Debug, FromSql, ToSql)]
 #[postgres(name = "event")]

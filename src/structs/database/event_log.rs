@@ -1,12 +1,9 @@
 use serde::Serialize;
 use tokio_postgres::types::ToSql;
 
-use crate::{
-    structs::Database,
-    types::{
-        database::{Event, GuildCreatePayload, GuildDeletePayload, InviteCheckCreatePayload},
-        Result,
-    },
+use crate::types::{
+    database::{Database, Event, GuildCreatePayload, GuildDeletePayload, InviteCheckCreatePayload},
+    Result,
 };
 
 impl Database {
