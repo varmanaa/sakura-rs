@@ -4,7 +4,7 @@ use twilight_model::id::{
     Id,
 };
 
-use crate::types::{Result, database::Database};
+use crate::types::{database::Database, Result};
 
 impl Database {
     pub async fn insert_message(
