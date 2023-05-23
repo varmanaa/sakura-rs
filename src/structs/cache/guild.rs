@@ -25,6 +25,7 @@ impl Cache {
         channels: Vec<TwilightChannel>,
         guild_id: Id<GuildMarker>,
         in_check: bool,
+        invite_check_category_ids: HashSet<Id<ChannelMarker>>,
         name: String,
         roles: Vec<TwilightRole>,
     ) {
@@ -47,6 +48,7 @@ impl Cache {
                 channel_ids: RwLock::new(channel_ids),
                 guild_id,
                 in_check,
+                invite_check_category_ids: RwLock::new(invite_check_category_ids),
                 name,
                 role_ids: RwLock::new(role_ids),
             }),
@@ -72,6 +74,31 @@ impl Cache {
         }
         if unavailable {
             self.insert_unavailable_guild(guild_id)
+        }
+    }
+
+    pub fn update_guild(
+        &self,
+        guild_id: Id<GuildMarker>,
+        in_check: Option<bool>,
+        invite_check_category_ids: Option<HashSet<Id<ChannelMarker>>>,
+        name: Option<String>,
+    ) {
+        if let Some(guild) = self.get_guild(guild_id) {
+            self.guilds.write().insert(
+                guild_id,
+                Arc::new(Guild {
+                    channel_ids: RwLock::new(guild.channel_ids.read().clone()),
+                    guild_id,
+                    in_check: in_check.unwrap_or(guild.in_check),
+                    invite_check_category_ids: RwLock::new(
+                        invite_check_category_ids
+                            .unwrap_or(guild.invite_check_category_ids.read().clone()),
+                    ),
+                    name: name.unwrap_or(guild.name.clone()),
+                    role_ids: RwLock::new(guild.role_ids.read().clone()),
+                }),
+            );
         }
     }
 }

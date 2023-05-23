@@ -41,6 +41,7 @@ pub struct Guild {
     pub channel_ids: RwLock<HashSet<Id<ChannelMarker>>>,
     pub guild_id: Id<GuildMarker>,
     pub in_check: bool,
+    pub invite_check_category_ids: RwLock<HashSet<Id<ChannelMarker>>>,
     pub name: String,
     pub role_ids: RwLock<HashSet<Id<RoleMarker>>>,
 }

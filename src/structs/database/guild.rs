@@ -16,7 +16,6 @@ impl Database {
         guild_id: Id<GuildMarker>,
     ) -> Option<Guild> {
         let client = self.pool.get().await.unwrap();
-
         let statement = "
             SELECT
                 *
@@ -25,7 +24,6 @@ impl Database {
             WHERE
                 guild_id = $1;
         ";
-
         let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64)];
 
         client
@@ -40,17 +38,14 @@ impl Database {
         channel_id: Id<ChannelMarker>,
     ) -> Result<()> {
         let client = self.pool.get().await.unwrap();
-
         let statement = "
             UPDATE
                 public.guild
             SET
-                category_channel_ids = ARRAY(SELECT DISTINCT \
-                         UNNEST(ARRAY_APPEND(category_channel_ids, $2)))
+                category_channel_ids = ARRAY(SELECT DISTINCT UNNEST(ARRAY_APPEND(category_channel_ids, $2)))
             WHERE
                 guild_id = $1;
         ";
-
         let params: &[&(dyn ToSql + Sync)] =
             &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
 
@@ -65,7 +60,6 @@ impl Database {
         embed_color: i32,
     ) -> Result<()> {
         let client = self.pool.get().await.unwrap();
-
         let statement = "
             UPDATE
                 public.guild
@@ -74,7 +68,6 @@ impl Database {
             WHERE
                 guild_id = $1;
         ";
-
         let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64), &embed_color];
 
         client.execute(statement, params).await?;
@@ -87,7 +80,6 @@ impl Database {
         guild_id: Id<GuildMarker>,
     ) -> Result<()> {
         let client = self.pool.get().await?;
-
         let statement = "
             INSERT INTO
                 public.guild (guild_id)
@@ -95,7 +87,6 @@ impl Database {
                 ($1)
             ON CONFLICT DO NOTHING;
         ";
-
         let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64)];
 
         client.execute(statement, params).await?;
@@ -109,17 +100,14 @@ impl Database {
         channel_id: Id<ChannelMarker>,
     ) -> Result<()> {
         let client = self.pool.get().await.unwrap();
-
         let statement = "
             UPDATE
                 public.guild
             SET
-                ignored_channel_ids = ARRAY(SELECT DISTINCT \
-                         UNNEST(ARRAY_APPEND(ignored_channel_ids, $2)))
+                ignored_channel_ids = ARRAY(SELECT DISTINCT UNNEST(ARRAY_APPEND(ignored_channel_ids, $2)))
             WHERE
                 guild_id = $1;
         ";
-
         let params: &[&(dyn ToSql + Sync)] =
             &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
 
@@ -134,7 +122,6 @@ impl Database {
         last_checked_at: OffsetDateTime,
     ) -> Result<()> {
         let client = self.pool.get().await.unwrap();
-
         let statement = "
             UPDATE
                 public.guild
@@ -143,7 +130,6 @@ impl Database {
             WHERE
                 guild_id = $1;
         ";
-
         let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64), &last_checked_at];
 
         client.execute(statement, params).await?;
@@ -157,7 +143,6 @@ impl Database {
         channel_id: Id<ChannelMarker>,
     ) -> Result<()> {
         let client = self.pool.get().await.unwrap();
-
         let statement = "
             UPDATE
                 public.guild
@@ -166,7 +151,6 @@ impl Database {
             WHERE
                 guild_id = $1;
         ";
-
         let params: &[&(dyn ToSql + Sync)] =
             &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
 
@@ -181,17 +165,14 @@ impl Database {
         channel_id: Id<ChannelMarker>,
     ) -> Result<()> {
         let client = self.pool.get().await.unwrap();
-
         let statement = "
             UPDATE
                 public.guild
             SET
-                category_channel_ids = ARRAY(SELECT DISTINCT \
-                         UNNEST(ARRAY_REMOVE(category_channel_ids, $2)))
+                category_channel_ids = ARRAY(SELECT DISTINCT UNNEST(ARRAY_REMOVE(category_channel_ids, $2)))
             WHERE
                 guild_id = $1;
         ";
-
         let params: &[&(dyn ToSql + Sync)] =
             &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
 
@@ -205,14 +186,12 @@ impl Database {
         guild_id: Id<GuildMarker>,
     ) -> Result<()> {
         let client = self.pool.get().await?;
-
         let statement = "
             DELETE FROM
                 public.guild
             WHERE
                 guild_id = $1;
         ";
-
         let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64)];
 
         client.execute(statement, params).await?;
@@ -226,17 +205,14 @@ impl Database {
         channel_id: Id<ChannelMarker>,
     ) -> Result<()> {
         let client = self.pool.get().await.unwrap();
-
         let statement = "
             UPDATE
                 public.guild
             SET
-                ignored_channel_ids = ARRAY(SELECT DISTINCT \
-                         UNNEST(ARRAY_REMOVE(ignored_channel_ids, $2)))
+                ignored_channel_ids = ARRAY(SELECT DISTINCT UNNEST(ARRAY_REMOVE(ignored_channel_ids, $2)))
             WHERE
                 guild_id = $1;
         ";
-
         let params: &[&(dyn ToSql + Sync)] =
             &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
 
@@ -248,19 +224,21 @@ impl Database {
     pub async fn remove_results_channel(
         &self,
         guild_id: Id<GuildMarker>,
+        channel_id: Id<ChannelMarker>,
     ) -> Result<()> {
         let client = self.pool.get().await.unwrap();
-
         let statement = "
             UPDATE
                 public.guild
             SET
                 results_channel_id = NULL
             WHERE
-                guild_id = $1;
+                guild_id = $1
+                AND channel_id = $2;
         ";
 
-        let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64)];
+        let params: &[&(dyn ToSql + Sync)] =
+            &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
 
         client.execute(statement, params).await?;
 

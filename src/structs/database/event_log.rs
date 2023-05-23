@@ -16,7 +16,7 @@ impl Database {
 
         let statement = "
             INSERT INTO
-                public.event_log (event, payload)
+                public.event_log (event_type, payload)
             VALUES
                 ($1, $2);
         ";

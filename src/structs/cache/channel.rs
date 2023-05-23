@@ -55,6 +55,7 @@ impl Cache {
         if let Some(channel) = self.channels.write().remove(&channel_id) {
             if let Some(guild) = self.get_guild(channel.guild_id) {
                 guild.channel_ids.write().remove(&channel_id);
+                guild.invite_check_category_ids.write().remove(&channel_id);
             }
         }
     }

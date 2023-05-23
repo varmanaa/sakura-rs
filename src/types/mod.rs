@@ -1,4 +1,4 @@
-use crate::utility::Error;
+use crate::utility::error::Error;
 
 pub mod cache;
 pub mod context;

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use tokio_postgres::types::ToSql;
 use twilight_model::id::{
     marker::{ChannelMarker, GuildMarker, MessageMarker},
@@ -12,14 +14,14 @@ impl Database {
         guild_id: Id<GuildMarker>,
         channel_id: Id<ChannelMarker>,
         message_id: Id<MessageMarker>,
-        category_id: Id<ChannelMarker>,
-        invite_codes: Vec<String>,
+        parent_id: Id<ChannelMarker>,
+        invite_codes: HashSet<String>,
     ) -> Result<()> {
         let client = self.pool.get().await?;
 
         let statement = "
             INSERT INTO
-                public.message
+                public.message (guild_id, channel_id, message_id, parent_id, invite_codes)
             VALUES
                 ($1, $2, $3, $4, $5)
             ON CONFLICT (guild_id, channel_id, message_id)
@@ -32,8 +34,8 @@ impl Database {
             &(guild_id.get() as i64),
             &(channel_id.get() as i64),
             &(message_id.get() as i64),
-            &(category_id.get() as i64),
-            &invite_codes,
+            &(parent_id.get() as i64),
+            &Vec::from_iter(invite_codes),
         ];
 
         client.execute(statement, params).await?;

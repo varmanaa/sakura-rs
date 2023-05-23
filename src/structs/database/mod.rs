@@ -10,7 +10,7 @@ use tokio_postgres::{Config, NoTls};
 
 use crate::{
     types::{database::Database, Result},
-    utility::DATABASE_URL,
+    utility::constants::DATABASE_URL,
 };
 
 impl Database {
@@ -21,18 +21,19 @@ impl Database {
             -- event enum
             DO $$
             BEGIN
-                DROP TYPE IF EXISTS event;
                 CREATE TYPE event AS ENUM (
                     'GUILD_CREATE',
                     'GUILD_DELETE',
                     'INVITE_CHECK_CREATE'
                 );
+            EXCEPTION
+                WHEN duplicate_object THEN NULL;
             END $$;
             
             -- event_log table
             CREATE TABLE IF NOT EXISTS public.event_log (
                 id BIGSERIAL PRIMARY KEY,
-                event event NOT NULL,
+                event_type event NOT NULL,
                 payload JSONB NOT NULL DEFAULT '{}'::JSONB,
                 created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
@@ -62,7 +63,7 @@ impl Database {
                 guild_id INT8,
                 channel_id INT8,
                 message_id INT8,
-                category_id INT8 NOT NULL,
+                parent_id INT8 NOT NULL,
                 invite_codes TEXT[] NOT NULL DEFAULT '{}',
                 created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (guild_id, channel_id, message_id)

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use deadpool_postgres::Pool;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -24,8 +26,8 @@ pub enum Event {
 
 pub struct Guild {
     pub guild_id: Id<GuildMarker>,
-    pub category_channel_ids: Vec<Id<ChannelMarker>>,
-    pub ignored_channel_ids: Vec<Id<ChannelMarker>>,
+    pub category_channel_ids: HashSet<Id<ChannelMarker>>,
+    pub ignored_channel_ids: HashSet<Id<ChannelMarker>>,
     pub embed_color: i32,
     pub results_channel_id: Option<Id<ChannelMarker>>,
     pub last_checked_at: Option<OffsetDateTime>,
@@ -33,17 +35,17 @@ pub struct Guild {
 
 #[derive(Deserialize, Serialize)]
 pub struct GuildCreatePayload {
-    pub guild_id: Id<GuildMarker>,
+    pub guild_id: i64,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct GuildDeletePayload {
-    pub guild_id: Id<GuildMarker>,
+    pub guild_id: i64,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct InviteCheckCreatePayload {
-    pub guild_id: Id<GuildMarker>,
+    pub guild_id: i64,
     pub start_time: OffsetDateTime,
     pub end_time: OffsetDateTime,
     pub channels: i64,

@@ -19,4 +19,6 @@ pub enum Error {
     SerdeJson(#[from] serde_json::Error),
     #[error("Unable to fetch recommended number of shards to use")]
     StartRecommended(#[from] twilight_gateway::stream::StartRecommendedError),
+    #[error("Provided time component is out of range")]
+    TimeComponent(#[from] time::error::ComponentRange),
 }
