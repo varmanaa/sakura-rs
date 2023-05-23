@@ -1,3 +1,4 @@
+mod commands;
 mod events;
 mod structs;
 mod types;
@@ -14,6 +15,7 @@ use twilight_gateway::{
 };
 use twilight_http::Client;
 use types::{cache::Cache, context::Context, database::Database, Result};
+use utility::constants::DEVELOPMENT_GUILD_ID;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -36,6 +38,31 @@ async fn main() -> Result<()> {
     database.create_tables().await?;
 
     let context = Arc::new(Context::new(application_id, cache, database, http));
+    let commands = commands::get_commands();
+
+    #[cfg(feature = "production")]
+    {
+        context
+            .interaction_client()
+            .set_global_commands(&commands)
+            .await?;
+        context
+            .interaction_client()
+            .set_guild_commands(*DEVELOPMENT_GUILD_ID, &[])
+            .await?;
+    }
+
+    #[cfg(not(feature = "production"))]
+    {
+        context
+            .interaction_client()
+            .set_global_commands(&[])
+            .await?;
+        context
+            .interaction_client()
+            .set_guild_commands(*DEVELOPMENT_GUILD_ID, &commands)
+            .await?;
+    }
 
     loop {
         let (_shard, event) = match stream.next().await {

@@ -11,6 +11,8 @@ pub enum Error {
     EnvironmentVariable(#[from] std::env::VarError),
     #[error("Unable to make HTTP request to Discord")]
     Http(#[from] twilight_http::error::Error),
+    #[error("Unable to validate message")]
+    MessageValidation(#[from] twilight_validate::message::MessageValidationError),
     #[error("Unable to retrieve object from pool")]
     Pool(#[from] deadpool_postgres::PoolError),
     #[error("PostgreSQL error")]

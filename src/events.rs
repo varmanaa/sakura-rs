@@ -1,12 +1,15 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, mem::take, sync::Arc};
 
 use time::OffsetDateTime;
 use twilight_gateway::Event;
+use twilight_model::application::interaction::InteractionData;
 
 use crate::{
+    commands::latency::LatencyCommand,
     types::{
         context::Context,
         database::{GuildCreatePayload, GuildDeletePayload},
+        interaction::ApplicationCommandInteraction,
         Result,
     },
     utility::message::get_invite_codes,
@@ -106,7 +109,27 @@ pub async fn handle_event(
                 .cache
                 .update_guild(payload.id, None, None, Some(payload.name.clone()))
         }
-        Event::InteractionCreate(_) => todo!(),
+        Event::InteractionCreate(payload) => {
+            if let (Some(guild_id), Some(channel)) = (payload.0.guild_id, payload.0.channel) {
+                if let Some(InteractionData::ApplicationCommand(data)) = payload.0.data {
+                    let interaction_client = context.interaction_client();
+                    let mut interaction = ApplicationCommandInteraction {
+                        channel_id: channel.id,
+                        data,
+                        guild_id,
+                        id: payload.0.id,
+                        interaction_client,
+                        token: payload.0.token,
+                    };
+                    let command_name = take(&mut interaction.data.name);
+
+                    match command_name.as_str() {
+                        "latency" => LatencyCommand::run(&context, interaction).await?,
+                        _ => (),
+                    }
+                }
+            }
+        }
         Event::MemberUpdate(payload) => {
             if payload.user.id.eq(&context.application_id.cast()) {
                 let guild_id = payload.guild_id;
