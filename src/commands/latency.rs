@@ -2,7 +2,15 @@ use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_util::builder::embed::EmbedBuilder;
 
 use crate::{
-    types::{context::Context, interaction::ApplicationCommandInteraction, Result},
+    types::{
+        context::Context,
+        interaction::{
+            ApplicationCommandInteraction,
+            DeferInteractionPayload,
+            UpdateResponsePayload,
+        },
+        Result,
+    },
     utility::time::humanize,
 };
 
@@ -15,7 +23,11 @@ impl LatencyCommand {
         _context: &Context,
         interaction: ApplicationCommandInteraction<'_>,
     ) -> Result<()> {
-        interaction.defer(false).await?;
+        interaction
+            .defer(DeferInteractionPayload {
+                ephemeral: false,
+            })
+            .await?;
 
         let response = interaction.response().await?;
         let rtt = humanize(
@@ -29,7 +41,11 @@ impl LatencyCommand {
             .description(description)
             .build();
 
-        interaction.update_response_with_embed(embed).await?;
+        interaction
+            .update_response(UpdateResponsePayload {
+                embeds: Some(&[embed]),
+            })
+            .await?;
 
         Ok(())
     }
