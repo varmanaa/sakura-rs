@@ -3,16 +3,20 @@ use std::{collections::HashSet, mem::take, sync::Arc};
 use time::OffsetDateTime;
 use twilight_gateway::Event;
 use twilight_model::application::interaction::InteractionData;
+use twilight_util::builder::embed::EmbedBuilder;
 
 use crate::{
-    commands::latency::LatencyCommand,
+    commands::{info::InfoCommand, latency::LatencyCommand},
     types::{
         context::Context,
         database::{GuildCreatePayload, GuildDeletePayload},
-        interaction::ApplicationCommandInteraction,
+        interaction::{ApplicationCommandInteraction, ResponsePayload},
         Result,
     },
-    utility::message::get_invite_codes,
+    utility::{
+        interaction::respond_with_ephemeral_interaction_response,
+        message::get_invite_codes,
+    },
 };
 
 pub async fn handle_event(
@@ -110,23 +114,74 @@ pub async fn handle_event(
                 .update_guild(payload.id, None, None, Some(payload.name.clone()))
         }
         Event::InteractionCreate(payload) => {
-            if let (Some(guild_id), Some(channel)) = (payload.0.guild_id, payload.0.channel) {
-                if let Some(InteractionData::ApplicationCommand(data)) = payload.0.data {
-                    let interaction_client = context.interaction_client();
+            let interaction_client = context.interaction_client();
+            let interaction_payload = payload.0;
+            let guild_id = match interaction_payload.guild_id {
+                Some(guild_id) => guild_id,
+                None => {
+                    respond_with_ephemeral_interaction_response(
+                        &context,
+                        &interaction_payload,
+                        "Sakura-RS only works in guilds.".to_owned(),
+                    )
+                    .await?;
+
+                    return Ok(());
+                }
+            };
+
+            if context.cache.get_guild(guild_id).is_none() {
+                respond_with_ephemeral_interaction_response(
+                    &context,
+                    &interaction_payload,
+                    "Please kick and re-invite Sakura-RS.".to_owned(),
+                )
+                .await?;
+
+                return Ok(());
+            }
+
+            match interaction_payload.data {
+                Some(InteractionData::ApplicationCommand(data)) => {
                     let mut interaction = ApplicationCommandInteraction {
-                        channel_id: channel.id,
+                        channel_id: interaction_payload.channel.unwrap().id,
                         data,
                         guild_id,
-                        id: payload.0.id,
+                        id: interaction_payload.id,
                         interaction_client,
-                        token: payload.0.token,
+                        token: interaction_payload.token,
                     };
                     let command_name = take(&mut interaction.data.name);
 
                     match command_name.as_str() {
+                        "info" => InfoCommand::run(&context, interaction).await?,
                         "latency" => LatencyCommand::run(&context, interaction).await?,
-                        _ => (),
+                        name => {
+                            let embed = EmbedBuilder::new()
+                                .color(0xF8F8FF)
+                                .description(format!(
+                                    "I have received an unknown command with the name \"{name}\"."
+                                ))
+                                .build();
+                            let payload = ResponsePayload {
+                                components: None,
+                                embeds: Some(vec![embed]),
+                                ephemeral: true,
+                            };
+
+                            interaction.respond(payload).await?;
+                        }
                     }
+                }
+                _ => {
+                    respond_with_ephemeral_interaction_response(
+                        &context,
+                        &interaction_payload,
+                        "I have received an unknown interaction.".to_owned(),
+                    )
+                    .await?;
+
+                    return Ok(());
                 }
             }
         }
