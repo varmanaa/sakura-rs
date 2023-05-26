@@ -6,7 +6,7 @@ use twilight_model::application::interaction::InteractionData;
 use twilight_util::builder::embed::EmbedBuilder;
 
 use crate::{
-    commands::{info::InfoCommand, latency::LatencyCommand},
+    commands::{check_message::CheckMessageCommand, info::InfoCommand, latency::LatencyCommand},
     types::{
         context::Context,
         database::{GuildCreatePayload, GuildDeletePayload},
@@ -154,6 +154,7 @@ pub async fn handle_event(
                     let command_name = take(&mut interaction.data.name);
 
                     match command_name.as_str() {
+                        "Check message" => CheckMessageCommand::run(&context, interaction).await?,
                         "info" => InfoCommand::run(&context, interaction).await?,
                         "latency" => LatencyCommand::run(&context, interaction).await?,
                         name => {

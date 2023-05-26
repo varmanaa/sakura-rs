@@ -85,7 +85,8 @@ impl Database {
                 public.guild (guild_id)
             VALUES
                 ($1)
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT
+            DO NOTHING;
         ";
         let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64)];
 

@@ -4,13 +4,35 @@ use tokio_postgres::types::ToSql;
 use crate::types::{database::Database, Result};
 
 impl Database {
-    pub async fn insert_invite(
+    pub async fn insert_unchecked_invite(
         &self,
         code: &str,
-        is_permalink: Option<bool>,
-        is_valid: Option<bool>,
-        expires_at: Option<OffsetDateTime>,
-        updated_at: Option<OffsetDateTime>,
+    ) -> Result<()> {
+        let client = self.pool.get().await?;
+
+        let statement = "
+            INSERT INTO
+                public.invite (code)
+            VALUES
+                ($1)
+            ON CONFLICT (code)
+            DO NOTHING;
+        ";
+
+        let params: &[&(dyn ToSql + Sync)] = &[&code];
+
+        client.execute(statement, params).await?;
+
+        Ok(())
+    }
+
+    pub async fn insert_checked_invite(
+        &self,
+        code: &str,
+        is_permalink: bool,
+        is_valid: bool,
+        expires_at: OffsetDateTime,
+        updated_at: OffsetDateTime,
     ) -> Result<()> {
         let client = self.pool.get().await?;
 
