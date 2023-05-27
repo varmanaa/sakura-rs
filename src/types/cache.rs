@@ -9,7 +9,7 @@ use twilight_model::{
     channel::{permission_overwrite::PermissionOverwrite, ChannelType},
     guild::Permissions,
     id::{
-        marker::{ChannelMarker, GuildMarker, RoleMarker},
+        marker::{ChannelMarker, GuildMarker, RoleMarker, UserMarker},
         Id,
     },
 };
@@ -34,6 +34,7 @@ pub struct Channel {
 pub struct CurrentUser {
     pub communication_disabled_until: Option<OffsetDateTime>,
     pub guild_id: Id<GuildMarker>,
+    pub user_id: Id<UserMarker>,
     pub role_ids: HashSet<Id<RoleMarker>>,
 }
 

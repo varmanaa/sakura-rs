@@ -6,7 +6,12 @@ use twilight_model::application::interaction::InteractionData;
 use twilight_util::builder::embed::EmbedBuilder;
 
 use crate::{
-    commands::{check_message::CheckMessageCommand, info::InfoCommand, latency::LatencyCommand},
+    commands::{
+        check_message::CheckMessageCommand,
+        config::ConfigCommand,
+        info::InfoCommand,
+        latency::LatencyCommand,
+    },
     types::{
         context::Context,
         database::{GuildCreatePayload, GuildDeletePayload},
@@ -91,9 +96,12 @@ pub async fn handle_event(
                 payload.0.name,
                 payload.0.roles,
             );
-            context
-                .cache
-                .insert_current_user(guild_id, communication_disabled_until, role_ids);
+            context.cache.insert_current_user(
+                guild_id,
+                communication_disabled_until,
+                context.application_id.cast(),
+                role_ids,
+            );
         }
         Event::GuildDelete(payload) => {
             let guild_id = payload.id;
@@ -155,6 +163,7 @@ pub async fn handle_event(
 
                     match command_name.as_str() {
                         "Check message" => CheckMessageCommand::run(&context, interaction).await?,
+                        "config" => ConfigCommand::run(&context, interaction).await?,
                         "info" => InfoCommand::run(&context, interaction).await?,
                         "latency" => LatencyCommand::run(&context, interaction).await?,
                         name => {
@@ -197,9 +206,12 @@ pub async fn handle_event(
                         });
                 let role_ids = HashSet::from_iter(payload.roles);
 
-                context
-                    .cache
-                    .insert_current_user(guild_id, communication_disabled_until, role_ids)
+                context.cache.insert_current_user(
+                    guild_id,
+                    communication_disabled_until,
+                    context.application_id.cast(),
+                    role_ids,
+                )
             }
         }
         Event::MessageCreate(payload) => {
@@ -210,6 +222,13 @@ pub async fn handle_event(
                             if guild.invite_check_category_ids.read().contains(&parent_id) {
                                 let invite_codes =
                                     get_invite_codes(payload.0.content, payload.0.embeds);
+
+                                for invite_code in invite_codes.clone() {
+                                    context
+                                        .database
+                                        .insert_unchecked_invite(&invite_code)
+                                        .await?;
+                                }
 
                                 context
                                     .database

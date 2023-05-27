@@ -2,7 +2,7 @@ use std::{collections::HashSet, sync::Arc};
 
 use time::OffsetDateTime;
 use twilight_model::id::{
-    marker::{GuildMarker, RoleMarker},
+    marker::{GuildMarker, RoleMarker, UserMarker},
     Id,
 };
 
@@ -20,6 +20,7 @@ impl Cache {
         &self,
         guild_id: Id<GuildMarker>,
         communication_disabled_until: Option<OffsetDateTime>,
+        user_id: Id<UserMarker>,
         role_ids: HashSet<Id<RoleMarker>>,
     ) {
         self.current_users.write().insert(
@@ -27,6 +28,7 @@ impl Cache {
             Arc::new(CurrentUser {
                 communication_disabled_until,
                 guild_id,
+                user_id,
                 role_ids,
             }),
         );

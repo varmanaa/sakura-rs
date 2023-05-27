@@ -11,6 +11,8 @@ pub enum Error {
     EnvironmentVariable(#[from] std::env::VarError),
     #[error("Unable to make HTTP request to Discord")]
     Http(#[from] twilight_http::error::Error),
+    #[error("Unable to validate HTTP request")]
+    HttpValidation(#[from] twilight_validate::request::ValidationError),
     #[error("Unable to parse interaction options")]
     InteractionOptions(#[from] twilight_interactions::error::ParseError),
     #[error("Unable to validate message")]

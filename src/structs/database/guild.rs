@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use time::OffsetDateTime;
 use tokio_postgres::{types::ToSql, Row};
 use twilight_model::id::{
@@ -36,7 +38,7 @@ impl Database {
         &self,
         guild_id: Id<GuildMarker>,
         channel_id: Id<ChannelMarker>,
-    ) -> Result<()> {
+    ) -> Result<HashSet<Id<ChannelMarker>>> {
         let client = self.pool.get().await.unwrap();
         let statement = "
             UPDATE
@@ -44,14 +46,23 @@ impl Database {
             SET
                 category_channel_ids = ARRAY(SELECT DISTINCT UNNEST(ARRAY_APPEND(category_channel_ids, $2)))
             WHERE
-                guild_id = $1;
+                guild_id = $1
+            RETURNING
+                category_channel_ids;
         ";
         let params: &[&(dyn ToSql + Sync)] =
             &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
+        let updated_category_channel_ids = match client.query_one(statement, params).await {
+            Ok(row) => {
+                row.get::<_, Vec<i64>>("category_channel_ids")
+                    .into_iter()
+                    .map(|id| Id::new(id as u64))
+                    .collect::<HashSet<Id<ChannelMarker>>>()
+            }
+            Err(_) => HashSet::new(),
+        };
 
-        client.execute(statement, params).await?;
-
-        Ok(())
+        Ok(updated_category_channel_ids)
     }
 
     pub async fn insert_embed_color(
@@ -164,7 +175,7 @@ impl Database {
         &self,
         guild_id: Id<GuildMarker>,
         channel_id: Id<ChannelMarker>,
-    ) -> Result<()> {
+    ) -> Result<HashSet<Id<ChannelMarker>>> {
         let client = self.pool.get().await.unwrap();
         let statement = "
             UPDATE
@@ -172,14 +183,23 @@ impl Database {
             SET
                 category_channel_ids = ARRAY(SELECT DISTINCT UNNEST(ARRAY_REMOVE(category_channel_ids, $2)))
             WHERE
-                guild_id = $1;
+                guild_id = $1
+            RETURNING
+                category_channel_ids;
         ";
         let params: &[&(dyn ToSql + Sync)] =
             &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
+        let updated_category_channel_ids = match client.query_one(statement, params).await {
+            Ok(row) => {
+                row.get::<_, Vec<i64>>("category_channel_ids")
+                    .into_iter()
+                    .map(|id| Id::new(id as u64))
+                    .collect::<HashSet<Id<ChannelMarker>>>()
+            }
+            Err(_) => HashSet::new(),
+        };
 
-        client.execute(statement, params).await?;
-
-        Ok(())
+        Ok(updated_category_channel_ids)
     }
 
     pub async fn remove_guild(

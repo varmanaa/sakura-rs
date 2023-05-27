@@ -14,11 +14,10 @@ use twilight_gateway::{
     Intents,
 };
 use twilight_http::Client;
-use types::{cache::Cache, context::Context, database::Database, Result};
 use utility::constants::DEVELOPMENT_GUILD_ID;
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> types::Result<()> {
     dotenv().ok();
 
     let token = env::var("BOT_TOKEN")?;
@@ -32,12 +31,17 @@ async fn main() -> Result<()> {
         .collect::<Vec<_>>();
     let mut stream = ShardEventStream::new(shards.iter_mut());
     let application_id = http.current_user_application().await?.model().await?.id;
-    let cache = Cache::new();
-    let database = Database::new()?;
+    let cache = types::cache::Cache::new();
+    let database = types::database::Database::new()?;
 
     database.create_tables().await?;
 
-    let context = Arc::new(Context::new(application_id, cache, database, http));
+    let context = Arc::new(types::context::Context::new(
+        application_id,
+        cache,
+        database,
+        http,
+    ));
     let commands = commands::get_commands();
 
     #[cfg(feature = "production")]
