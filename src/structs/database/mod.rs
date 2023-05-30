@@ -54,7 +54,7 @@ impl Database {
                 is_permalink BOOLEAN DEFAULT NULL,
                 is_valid BOOLEAN DEFAULT NULL,
                 expires_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
-                inserted_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT NULL
             );
 

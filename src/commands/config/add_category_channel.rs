@@ -134,6 +134,8 @@ impl ConfigAddCategoryChannelCommand {
             .update_guild(interaction.guild_id, Some(true), None, None);
 
         for channel_id in cached_guild_channel_ids {
+            sleep(Duration::from_millis(500)).await;
+
             let channel = match context.cache.get_channel(channel_id) {
                 Some(channel) => channel,
                 None => continue,
@@ -144,9 +146,6 @@ impl ConfigAddCategoryChannelCommand {
                     continue;
                 }
             }
-
-            sleep(Duration::from_millis(500)).await;
-
             let messages = context
                 .http
                 .channel_messages(channel_id)
@@ -158,10 +157,10 @@ impl ConfigAddCategoryChannelCommand {
             for message in messages {
                 let invite_codes = get_invite_codes(message.content, message.embeds);
 
-                for invite_code in invite_codes.clone() {
+                for invite_code in invite_codes.iter() {
                     context
                         .database
-                        .insert_unchecked_invite(&invite_code)
+                        .insert_unchecked_invite(invite_code)
                         .await?;
                 }
 

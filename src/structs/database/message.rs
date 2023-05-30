@@ -1,4 +1,7 @@
-use std::collections::HashSet;
+use std::{
+    collections::{HashMap, HashSet},
+    iter,
+};
 
 use tokio_postgres::types::ToSql;
 use twilight_model::id::{
@@ -104,5 +107,40 @@ impl Database {
         client.execute(statement, params).await?;
 
         Ok(())
+    }
+
+    pub async fn remove_old_messages(
+        &self,
+        age: u8,
+    ) -> Result<HashMap<Id<GuildMarker>, HashSet<Id<ChannelMarker>>>> {
+        let client = self.pool.get().await?;
+
+        let statement = "
+            DELETE FROM
+                public.message
+            WHERE
+                created_at >= CURRENT_TIMESTAMP - INTERVAL '$1 days'
+            RETURNING
+                guild_id,
+                channel_id;
+        ";
+
+        let params: &[&(dyn ToSql + Sync)] = &[&(age as i8)];
+        let mut old_ids: HashMap<Id<GuildMarker>, HashSet<Id<ChannelMarker>>> = HashMap::new();
+
+        if let Ok(rows) = client.query(statement, params).await {
+            for row in rows {
+                let guild_id: Id<GuildMarker> = Id::new(row.get::<_, i64>("guild_id") as u64);
+                let channel_id: Id<ChannelMarker> = Id::new(row.get::<_, i64>("guild_id") as u64);
+                let guild_channel_ids = match old_ids.get(&guild_id).cloned() {
+                    Some(channel_ids) => channel_ids,
+                    None => HashSet::from_iter(iter::once(channel_id)),
+                };
+
+                old_ids.insert(guild_id, guild_channel_ids);
+            }
+        }
+
+        Ok(old_ids)
     }
 }

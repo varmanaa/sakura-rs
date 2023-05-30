@@ -11,6 +11,7 @@ serde_json = "1.0.96"
 thiserror = "1.0.40"
 time = { default-features = false, features = ["parsing", "serde"], version = "0.3.21" }
 tokio = { default-features = false, features = ["macros", "rt-multi-thread", "sync", "time"], version = "1.28.1" }
+tokio-cron-scheduler = { features = ["signal"], version = "0.9.4" }
 tokio-postgres = { default-features = false, features = ["with-serde_json-1", "with-time-0_3"], version = "0.7.8" }
 twilight-gateway = "0.15.2"
 twilight-http = "0.15.2"

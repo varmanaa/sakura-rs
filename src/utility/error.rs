@@ -15,6 +15,8 @@ pub enum Error {
     HttpValidation(#[from] twilight_validate::request::ValidationError),
     #[error("Unable to parse interaction options")]
     InteractionOptions(#[from] twilight_interactions::error::ParseError),
+    #[error("Job scheduler")]
+    JobScheduler(#[from] tokio_cron_scheduler::JobSchedulerError),
     #[error("Unable to validate message")]
     MessageValidation(#[from] twilight_validate::message::MessageValidationError),
     #[error("Unable to retrieve object from pool")]

@@ -1,6 +1,7 @@
 mod commands;
 mod events;
 mod structs;
+mod tasks;
 mod types;
 mod utility;
 
@@ -67,6 +68,10 @@ async fn main() -> types::Result<()> {
             .set_guild_commands(*DEVELOPMENT_GUILD_ID, &commands)
             .await?;
     }
+
+    let task_context = context.clone();
+
+    tasks::handle_tasks(task_context).await?;
 
     loop {
         let (_shard, event) = match stream.next().await {
