@@ -23,8 +23,8 @@ impl ConfigShowCommand {
             })
             .await?;
 
-        let guild = match context.database.get_guild(interaction.guild_id).await {
-            Some(guild) => guild,
+        let database_guild = match context.database.get_guild(interaction.guild_id).await {
+            Some(database_guild) => database_guild,
             None => {
                 let embed = EmbedBuilder::new()
                     .color(0xF8F8FF)
@@ -40,10 +40,10 @@ impl ConfigShowCommand {
                 return Ok(());
             }
         };
-        let category_channel_ids_text = if guild.category_channel_ids.is_empty() {
+        let category_channel_ids_text = if database_guild.category_channel_ids.is_empty() {
             "No categories added.".to_string()
         } else {
-            guild
+            database_guild
                 .category_channel_ids
                 .iter()
                 .map(|channel_id| {
@@ -57,11 +57,11 @@ impl ConfigShowCommand {
                 .collect::<Vec<String>>()
                 .join("\n")
         };
-        let color_text = format!("#{:06X}", guild.embed_color);
-        let ignored_channel_ids_text = if guild.ignored_channel_ids.is_empty() {
+        let color_text = format!("#{:06X}", database_guild.embed_color);
+        let ignored_channel_ids_text = if database_guild.ignored_channel_ids.is_empty() {
             "No channels ignored.".to_string()
         } else {
-            guild
+            database_guild
                 .ignored_channel_ids
                 .iter()
                 .map(|channel_id| {
@@ -75,13 +75,13 @@ impl ConfigShowCommand {
                 .collect::<Vec<String>>()
                 .join("\n")
         };
-        let result_text = guild
+        let result_text = database_guild
             .results_channel_id
             .map_or("No results channel set.".to_string(), |channel_id| {
                 format!("<#{}>", channel_id)
             });
         let embed = EmbedBuilder::new()
-            .color(guild.embed_color as u32)
+            .color(database_guild.embed_color as u32)
             .field(EmbedFieldBuilder::new("Categories", category_channel_ids_text).build())
             .field(EmbedFieldBuilder::new("Embed color", color_text).build())
             .field(EmbedFieldBuilder::new("Ignored", ignored_channel_ids_text).build())

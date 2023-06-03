@@ -87,7 +87,12 @@ impl CheckMessageCommand {
             }
         };
         let is_within_added_category = match context.cache.get_guild(interaction.guild_id) {
-            Some(guild) => guild.invite_check_category_ids.read().contains(&parent_id),
+            Some(cached_guild) => {
+                cached_guild
+                    .invite_check_category_ids
+                    .read()
+                    .contains(&parent_id)
+            }
             None => false,
         };
 

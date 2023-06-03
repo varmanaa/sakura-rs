@@ -40,7 +40,7 @@ impl ConfigAddCategoryChannelCommand {
             })
             .await?;
 
-        let guild = match context.cache.get_guild(interaction.guild_id) {
+        let cached_guild = match context.cache.get_guild(interaction.guild_id) {
             Some(guild) => guild,
             None => {
                 let embed = EmbedBuilder::new()
@@ -59,7 +59,7 @@ impl ConfigAddCategoryChannelCommand {
         };
         let category_id = options.channel;
 
-        if guild
+        if cached_guild
             .invite_check_category_ids
             .read()
             .contains(&category_id)
@@ -77,8 +77,6 @@ impl ConfigAddCategoryChannelCommand {
 
             return Ok(());
         }
-
-        let cached_guild = context.cache.get_guild(interaction.guild_id).unwrap();
 
         if cached_guild.in_check {
             let embed = EmbedBuilder::new()

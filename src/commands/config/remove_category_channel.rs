@@ -30,8 +30,8 @@ impl ConfigRemoveCategoryChannelCommand {
             })
             .await?;
 
-        let guild = match context.cache.get_guild(interaction.guild_id) {
-            Some(guild) => guild,
+        let cached_guild = match context.cache.get_guild(interaction.guild_id) {
+            Some(cached_guild) => cached_guild,
             None => {
                 let embed = EmbedBuilder::new()
                     .color(0xF8F8FF)
@@ -48,7 +48,11 @@ impl ConfigRemoveCategoryChannelCommand {
             }
         };
         let channel_id = options.channel;
-        let description = if !guild.invite_check_category_ids.read().contains(&channel_id) {
+        let description = if !cached_guild
+            .invite_check_category_ids
+            .read()
+            .contains(&channel_id)
+        {
             format!("<#{channel_id}> is not an added category.")
         } else {
             let updated_category_channel_ids = context

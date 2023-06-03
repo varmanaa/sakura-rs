@@ -32,8 +32,8 @@ impl ConfigSetEmbedColorCommand {
             })
             .await?;
 
-        let guild = match context.database.get_guild(interaction.guild_id).await {
-            Some(guild) => guild,
+        let database_guild = match context.database.get_guild(interaction.guild_id).await {
+            Some(database_guild) => database_guild,
             None => {
                 let embed = EmbedBuilder::new()
                     .color(0xF8F8FF)
@@ -49,7 +49,7 @@ impl ConfigSetEmbedColorCommand {
                 return Ok(());
             }
         };
-        let current_hex_code = format!("{:#06}", guild.embed_color);
+        let current_hex_code = format!("{:#06}", database_guild.embed_color);
         let hex_code = format!("{:0>6}", options.hex_code.to_uppercase());
         let description = if hex_code.chars().any(|char| char.to_digit(16).is_none()) {
             format!("**#{hex_code}** is not a valid hex code.")

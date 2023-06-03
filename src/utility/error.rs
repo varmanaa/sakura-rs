@@ -5,6 +5,8 @@ use thiserror::Error;
 pub enum Error {
     #[error("Unable to build connection pool")]
     Build(#[from] deadpool_postgres::BuildError),
+    #[error("{0}")]
+    Custom(String),
     #[error("Unable to make deserialize response body")]
     Deserialization(#[from] twilight_http::response::DeserializeBodyError),
     #[error("Environment variable is not set")]

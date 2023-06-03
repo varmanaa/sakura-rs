@@ -7,6 +7,7 @@ use twilight_util::builder::embed::EmbedBuilder;
 
 use crate::{
     commands::{
+        check::CheckCommand,
         check_message::CheckMessageCommand,
         config::ConfigCommand,
         info::InfoCommand,
@@ -163,6 +164,7 @@ pub async fn handle_event(
 
                     match command_name.as_str() {
                         "Check message" => CheckMessageCommand::run(&context, interaction).await?,
+                        "check" => CheckCommand::run(&context, interaction).await?,
                         "config" => ConfigCommand::run(&context, interaction).await?,
                         "info" => InfoCommand::run(&context, interaction).await?,
                         "latency" => LatencyCommand::run(&context, interaction).await?,

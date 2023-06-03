@@ -1,3 +1,4 @@
+pub mod check;
 pub mod check_message;
 pub mod config;
 pub mod info;
@@ -8,6 +9,7 @@ use twilight_model::application::command::Command;
 
 pub fn get_commands() -> Vec<Command> {
     vec![
+        check::CheckCommand::create_command().into(),
         check_message::CheckMessageCommand::create_command(),
         config::ConfigCommand::create_command().into(),
         info::InfoCommand::create_command().into(),

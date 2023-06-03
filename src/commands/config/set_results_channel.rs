@@ -30,8 +30,8 @@ impl ConfigSetResultsChannelCommand {
             })
             .await?;
 
-        let guild = match context.database.get_guild(interaction.guild_id).await {
-            Some(guild) => guild,
+        let database_guild = match context.database.get_guild(interaction.guild_id).await {
+            Some(database_guild) => database_guild,
             None => {
                 let embed = EmbedBuilder::new()
                     .color(0xF8F8FF)
@@ -48,7 +48,7 @@ impl ConfigSetResultsChannelCommand {
             }
         };
         let channel_id = options.channel;
-        let description = match guild.results_channel_id {
+        let description = match database_guild.results_channel_id {
             Some(results_channel_id) if results_channel_id.eq(&channel_id) => {
                 format!("<#{channel_id}> is already set as your results channel.")
             }

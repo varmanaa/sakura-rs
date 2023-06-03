@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use time::OffsetDateTime;
 use tokio_postgres::{types::ToSql, Row};
 use twilight_model::id::{
     marker::{ChannelMarker, GuildMarker},
@@ -122,27 +121,6 @@ impl Database {
         ";
         let params: &[&(dyn ToSql + Sync)] =
             &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
-
-        client.execute(statement, params).await?;
-
-        Ok(())
-    }
-
-    pub async fn insert_last_checked_at(
-        &self,
-        guild_id: Id<GuildMarker>,
-        last_checked_at: OffsetDateTime,
-    ) -> Result<()> {
-        let client = self.pool.get().await.unwrap();
-        let statement = "
-            UPDATE
-                public.guild
-            SET
-                last_checked_at = $2
-            WHERE
-                guild_id = $1;
-        ";
-        let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64), &last_checked_at];
 
         client.execute(statement, params).await?;
 
@@ -285,7 +263,6 @@ impl From<Row> for Guild {
             results_channel_id: row
                 .try_get::<_, i64>("results_channel_id")
                 .map_or(None, |channel_id| Some(Id::new(channel_id as u64))),
-            last_checked_at: row.try_get::<_, OffsetDateTime>("last_checked_at").ok(),
         }
     }
 }

@@ -11,7 +11,7 @@ use crate::{
         },
         Result,
     },
-    utility::time::humanize,
+    utility::decimal::add_commas,
 };
 
 #[derive(CommandModel, CreateCommand)]
@@ -30,10 +30,9 @@ impl LatencyCommand {
             .await?;
 
         let response = interaction.response().await?;
-        let rtt = humanize(
+        let rtt = add_commas(
             (((response.id.get() >> 22) + 1_420_070_400_000)
-                - ((interaction.id.get() >> 22) + 1_420_070_400_000))
-                .into(),
+                - ((interaction.id.get() >> 22) + 1_420_070_400_000)) as f64,
         );
         let description = format!("**RTT**: {rtt}");
         let embed = EmbedBuilder::new()

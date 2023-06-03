@@ -44,8 +44,7 @@ impl Database {
                 category_channel_ids INT8[] NOT NULL DEFAULT '{}',
                 ignored_channel_ids INT8[] NOT NULL DEFAULT '{}',
                 embed_color INT4 NOT NULL DEFAULT 16316671,
-                results_channel_id INT8,
-                last_checked_at TIMESTAMP WITH TIME ZONE
+                results_channel_id INT8
             );
 
             -- invite table

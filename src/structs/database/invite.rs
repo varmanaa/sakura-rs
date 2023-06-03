@@ -1,9 +1,61 @@
+use std::collections::HashMap;
+
 use time::OffsetDateTime;
 use tokio_postgres::types::ToSql;
+use twilight_model::id::{
+    marker::{ChannelMarker, GuildMarker},
+    Id,
+};
 
 use crate::types::{database::Database, Result};
 
 impl Database {
+    pub async fn get_guild_invite_counts(
+        &self,
+        guild_id: Id<GuildMarker>,
+    ) -> Result<HashMap<Id<ChannelMarker>, (u16, u16)>> {
+        let client = self.pool.get().await?;
+
+        let statement = "
+            WITH guild_invite AS (
+                SELECT
+                    public.message.channel_id,
+                    _.code,
+                    COALESCE(public.invite.is_valid, FALSE) AS is_valid
+                FROM
+                    public.message,
+                    UNNEST(public.message.invite_codes) _(code)
+                    LEFT JOIN public.invite ON public.invite.code = _.code
+                WHERE
+                    guild_id = $1
+            )
+            SELECT
+                channel_id,
+                COUNT(*) FILTER (WHERE guild_invite.is_valid)::INT2 AS good_invites,
+                COUNT(*) FILTER (WHERE NOT guild_invite.is_valid)::INT2 AS bad_invites
+            FROM
+                guild_invite
+            GROUP BY
+                guild_invite.channel_id;      
+        ";
+        let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64)];
+        let mut invite_check: HashMap<Id<ChannelMarker>, (u16, u16)> = HashMap::new();
+
+        if let Ok(rows) = client.query(statement, params).await {
+            for row in rows {
+                invite_check.insert(
+                    Id::new(row.get::<_, i64>("channel_id") as u64),
+                    (
+                        row.get::<_, i16>("good_invites") as u16,
+                        row.get::<_, i16>("bad_invites") as u16,
+                    ),
+                );
+            }
+        }
+
+        Ok(invite_check)
+    }
+
     pub async fn get_unchecked_invites(
         &self,
         limit: u8,

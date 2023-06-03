@@ -30,7 +30,6 @@ pub struct Guild {
     pub ignored_channel_ids: HashSet<Id<ChannelMarker>>,
     pub embed_color: i32,
     pub results_channel_id: Option<Id<ChannelMarker>>,
-    pub last_checked_at: Option<OffsetDateTime>,
 }
 
 #[derive(Deserialize, Serialize)]

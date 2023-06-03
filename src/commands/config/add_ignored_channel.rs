@@ -33,8 +33,8 @@ impl ConfigAddIgnoredChannelCommand {
             })
             .await?;
 
-        let guild = match context.database.get_guild(interaction.guild_id).await {
-            Some(guild) => guild,
+        let database_guild = match context.database.get_guild(interaction.guild_id).await {
+            Some(database_guild) => database_guild,
             None => {
                 let embed = EmbedBuilder::new()
                     .color(0xF8F8FF)
@@ -51,7 +51,7 @@ impl ConfigAddIgnoredChannelCommand {
             }
         };
         let channel_id = options.channel;
-        let description = if guild.ignored_channel_ids.contains(&channel_id) {
+        let description = if database_guild.ignored_channel_ids.contains(&channel_id) {
             format!("<#{channel_id}> is already an ignored channel.")
         } else {
             context
