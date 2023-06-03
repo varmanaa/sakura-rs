@@ -1,6 +1,7 @@
 mod commands;
 mod events;
 mod structs;
+mod tasks;
 mod types;
 mod utility;
 
@@ -68,6 +69,12 @@ async fn main() -> types::Result<()> {
             .await?;
     }
 
+    let task_context = context.clone();
+
+    tokio::spawn(async move {
+        tasks::handle_tasks(task_context).await.unwrap();
+    });
+
     loop {
         let (_shard, event) = match stream.next().await {
             Some((shard, Ok(event))) => (shard, event),
@@ -82,7 +89,9 @@ async fn main() -> types::Result<()> {
         };
         let event_context = context.clone();
 
-        events::handle_event(event, event_context).await?;
+        tokio::spawn(async move {
+            events::handle_event(event, event_context).await.unwrap();
+        });
     }
 
     Ok(())
