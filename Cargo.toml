@@ -20,6 +20,10 @@ twilight-model = "0.15.2"
 twilight-util = { features = ["builder", "permission-calculator"], version = "0.15.2" }
 twilight-validate = "0.15.1"
 
+[features]
+default = []
+production = []
+
 [package]
 edition = "2021"
 name = "sakura-rs"
