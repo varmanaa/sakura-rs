@@ -32,9 +32,18 @@ impl LatencyCommand {
         let response = interaction.response().await?;
         let rtt = add_commas(
             (((response.id.get() >> 22) + 1_420_070_400_000)
-                - ((interaction.id.get() >> 22) + 1_420_070_400_000)) as f64,
+                - ((interaction.id.get() >> 22) + 1_420_070_400_000)) as u128,
         );
-        let description = format!("**RTT**: {rtt}");
+        let description =
+            interaction
+                .latency
+                .average()
+                .map_or(format!("🚀 **RTT**: {rtt} ms"), |duration| {
+                    format!(
+                        "🏓 **Shard:** {} ms\n🚀 **RTT**: {rtt} ms",
+                        add_commas(duration.as_millis())
+                    )
+                });
         let embed = EmbedBuilder::new()
             .color(0xF8F8FF)
             .description(description)

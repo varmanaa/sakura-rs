@@ -1,7 +1,7 @@
 use std::{collections::HashSet, mem::take, sync::Arc};
 
 use time::OffsetDateTime;
-use twilight_gateway::Event;
+use twilight_gateway::{Event, Latency};
 use twilight_model::application::interaction::InteractionData;
 use twilight_util::builder::embed::EmbedBuilder;
 
@@ -26,6 +26,7 @@ use crate::{
 };
 
 pub async fn handle_event(
+    latency: Latency,
     event: Event,
     context: Arc<Context>,
 ) -> Result<()> {
@@ -158,6 +159,7 @@ pub async fn handle_event(
                         guild_id,
                         id: interaction_payload.id,
                         interaction_client,
+                        latency,
                         token: interaction_payload.token,
                     };
                     let command_name = take(&mut interaction.data.name);

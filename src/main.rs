@@ -76,7 +76,7 @@ async fn main() -> types::Result<()> {
     });
 
     loop {
-        let (_shard, event) = match stream.next().await {
+        let (shard, event) = match stream.next().await {
             Some((shard, Ok(event))) => (shard, event),
             Some((_shard, Err(source))) => {
                 if source.is_fatal() {
@@ -88,9 +88,12 @@ async fn main() -> types::Result<()> {
             None => break,
         };
         let event_context = context.clone();
+        let latency = shard.latency().clone();
 
         tokio::spawn(async move {
-            events::handle_event(event, event_context).await.unwrap();
+            events::handle_event(latency, event, event_context)
+                .await
+                .unwrap();
         });
     }
 

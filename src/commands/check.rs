@@ -254,11 +254,11 @@ impl CheckCommand {
                 vec![
                     format!(
                         "- **{}** channel(s) checked",
-                        add_commas(total_channels as f64)
+                        add_commas(total_channels as u128)
                     ),
                     format!(
                         "- **{}** invite(s) checked",
-                        add_commas((total_bad + total_good) as f64)
+                        add_commas((total_bad + total_good) as u128)
                     ),
                     format!(
                         "- **{total_bad}** ({:.2}%) invalid invite(s)",

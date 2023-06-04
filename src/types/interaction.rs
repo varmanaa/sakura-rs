@@ -1,3 +1,4 @@
+use twilight_gateway::Latency;
 use twilight_http::client::InteractionClient;
 use twilight_model::{
     application::interaction::application_command::CommandData,
@@ -14,6 +15,7 @@ pub struct ApplicationCommandInteraction<'a> {
     pub guild_id: Id<GuildMarker>,
     pub id: Id<InteractionMarker>,
     pub interaction_client: InteractionClient<'a>,
+    pub latency: Latency,
     pub token: String,
 }
 
