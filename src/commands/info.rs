@@ -10,13 +10,12 @@ use crate::types::{
 
 #[derive(CommandOption, CreateOption)]
 enum Query {
-    #[option(
-        name = "Documents and source code",
-        value = "documents-and-source-code"
-    )]
-    DocumentsAndSourceCode,
+    #[option(name = "Documents", value = "documents")]
+    Documents,
     #[option(name = "Setup", value = "setup")]
     Setup,
+    #[option(name = "Source code", value = "source-code")]
+    SourceCode,
 }
 
 #[allow(dead_code)]
@@ -34,11 +33,11 @@ impl InfoCommand {
     ) -> Result<()> {
         let options = InfoCommand::from_interaction(interaction.input_data())?;
         let payload = match options.query {
-            Query::DocumentsAndSourceCode => {
+            Query::Documents => {
                 let embed = EmbedBuilder::new()
                     .color(0xF8F8FF)
                     .description("Click/tap the button that interests you!")
-                    .title("Extra stuff")
+                    .title("Documents")
                     .build();
                 let components = vec![
                     Component::ActionRow(ActionRow {
@@ -50,14 +49,6 @@ impl InfoCommand {
                                 label: Some("Privacy Policy".to_owned()),
                                 style: ButtonStyle::Link,
                                 url: Some("https://github.com/Chiitoi/Sakura-RS/blob/main/docs/PRIVACY_POLICY.md".to_owned())
-                            }),
-                            Component::Button(Button {
-                                custom_id: None,
-                                disabled: false,
-                                emoji: None,
-                                label: Some("Source code".to_owned()),
-                                style: ButtonStyle::Link,
-                                url: Some("https://github.com/Chiitoi/Sakura-RS".to_owned())
                             }),
                             Component::Button(Button {
                                 custom_id: None,
@@ -94,12 +85,12 @@ impl InfoCommand {
                     .field(
                         EmbedFieldBuilder::new(
                             "Setup",
-                            "
-                                - Set a channel to send invite check results in using the `/config set-results-channel` command.
-                                - Add categories to check using the `/config add-category-channel` command.
-                                - Add channels to ignore using the `/config add-ignored-channel` command.
-                                - Run an invite check using the `/check` command.
-                            "
+                            vec![
+                                "- Set a channel to send invite check results in using the `/config set-results-channel` command.",
+                                "- Add categories to check using the `/config add-category-channel` command.",
+                                "- Add channels to ignore using the `/config add-ignored-channel` command.",
+                                "- Run an invite check using the `/check` command."
+                            ].join("\n")
                         ).build()
                     )
                     .title("Sakura-RS 101")
@@ -107,6 +98,29 @@ impl InfoCommand {
 
                 ResponsePayload {
                     components: None,
+                    embeds: Some(vec![embed]),
+                    ephemeral: false,
+                }
+            }
+            Query::SourceCode => {
+                let embed = EmbedBuilder::new()
+                    .color(0xF8F8FF)
+                    .description("Click/tap the button below!")
+                    .title("Source code")
+                    .build();
+                let components = vec![Component::ActionRow(ActionRow {
+                    components: vec![Component::Button(Button {
+                        custom_id: None,
+                        disabled: false,
+                        emoji: None,
+                        label: Some("Source code".to_owned()),
+                        style: ButtonStyle::Link,
+                        url: Some("https://github.com/Chiitoi/Sakura-RS".to_owned()),
+                    })],
+                })];
+
+                ResponsePayload {
+                    components: Some(components),
                     embeds: Some(vec![embed]),
                     ephemeral: false,
                 }
