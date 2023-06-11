@@ -98,23 +98,30 @@ impl ConfigAddCategoryChannelCommand {
         }
 
         let cached_guild_channel_ids = cached_guild.channel_ids.read().clone();
-        let invisible_channels_string = cached_guild_channel_ids
-            .clone()
-            .into_iter()
-            .filter_map(|channel_id| {
-                match context.cache.has_minimum_channel_permissions(channel_id) {
-                    true => None,
-                    false => Some(format!("- <#{channel_id}>")),
-                }
-            })
-            .collect::<Vec<String>>()
-            .join("\n");
+        let mut channel_ids_to_process = Vec::new();
+        let mut invisible_channels = Vec::new();
 
-        if !invisible_channels_string.is_empty() {
+        for channel_id in cached_guild_channel_ids {
+            if let Some(channel) = context.cache.get_channel(channel_id) {
+                if let Some(parent_id) = channel.parent_id {
+                    if !parent_id.eq(&category_id) {
+                        continue;
+                    }
+
+                    if context.cache.has_minimum_channel_permissions(channel_id) {
+                        channel_ids_to_process.push(channel_id)
+                    } else {
+                        invisible_channels.push(format!("- <#{channel_id}>"))
+                    }
+                }
+            }
+        }
+
+        if !invisible_channels.is_empty() {
             let embed = EmbedBuilder::new()
                 .color(0xF8F8FF)
                 .description(
-                    format!("Sakura-RS is unable to check the following channels:\n{invisible_channels_string}\nPlease give permission for Sakura-RS to read these channels and add the category again."),
+                    format!("Sakura-RS is unable to check the following channels:\n{}\nPlease give permission for Sakura-RS to read these channels and add the category again.", invisible_channels.join("\n")),
                 )
                 .build();
 
@@ -131,19 +138,9 @@ impl ConfigAddCategoryChannelCommand {
             .cache
             .update_guild(interaction.guild_id, Some(true), None, None);
 
-        for channel_id in cached_guild_channel_ids {
-            sleep(Duration::from_millis(500)).await;
+        for channel_id in channel_ids_to_process {
+            sleep(Duration::from_millis(1000)).await;
 
-            let channel = match context.cache.get_channel(channel_id) {
-                Some(channel) => channel,
-                None => continue,
-            };
-
-            if let Some(parent_id) = channel.parent_id {
-                if !category_id.eq(&parent_id) {
-                    continue;
-                }
-            }
             let messages = context
                 .http
                 .channel_messages(channel_id)
@@ -153,9 +150,12 @@ impl ConfigAddCategoryChannelCommand {
                 .await?;
 
             for message in messages {
+                sleep(Duration::from_millis(100)).await;
                 let invite_codes = get_invite_codes(message.content, message.embeds);
 
                 for invite_code in invite_codes.iter() {
+                    sleep(Duration::from_millis(100)).await;
+
                     context
                         .database
                         .insert_unchecked_invite(invite_code)

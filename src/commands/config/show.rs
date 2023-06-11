@@ -50,8 +50,8 @@ impl ConfigShowCommand {
                     context
                         .cache
                         .get_channel(*channel_id)
-                        .map_or(format!("{channel_id} **(no longer exists)**"), |_| {
-                            format!("<#{channel_id}>")
+                        .map_or(format!("- {channel_id} **(no longer exists)**"), |_| {
+                            format!("- <#{channel_id}>")
                         })
                 })
                 .collect::<Vec<String>>()
@@ -68,8 +68,8 @@ impl ConfigShowCommand {
                     context
                         .cache
                         .get_channel(*channel_id)
-                        .map_or(format!("{channel_id} **(no longer exists)**"), |_| {
-                            format!("<#{channel_id}>")
+                        .map_or(format!("- {channel_id} **(no longer exists)**"), |_| {
+                            format!("- <#{channel_id}>")
                         })
                 })
                 .collect::<Vec<String>>()

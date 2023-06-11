@@ -233,7 +233,7 @@ impl Database {
                 results_channel_id = NULL
             WHERE
                 guild_id = $1
-                AND channel_id = $2;
+                AND results_channel_id = $2;
         ";
 
         let params: &[&(dyn ToSql + Sync)] =
