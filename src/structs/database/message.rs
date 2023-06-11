@@ -96,7 +96,7 @@ impl Database {
             DELETE FROM
                 public.message
             WHERE
-                message_ids IN $1;
+                message_id = ANY($1);
         ";
 
         let params: &[&(dyn ToSql + Sync)] = &[&message_ids
