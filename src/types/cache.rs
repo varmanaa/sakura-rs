@@ -26,6 +26,7 @@ pub struct Channel {
     pub channel_id: Id<ChannelMarker>,
     pub guild_id: Id<GuildMarker>,
     pub kind: ChannelType,
+    pub name: String,
     pub parent_id: Option<Id<ChannelMarker>>,
     pub permission_overwrites: Option<Vec<PermissionOverwrite>>,
     pub position: i32,

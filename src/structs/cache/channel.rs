@@ -39,6 +39,9 @@ impl Cache {
                         channel_id,
                         guild_id,
                         kind: channel.kind,
+                        name: channel
+                            .name
+                            .unwrap_or("no-name-channel-or-category".to_owned()),
                         parent_id: channel.parent_id,
                         permission_overwrites: channel.permission_overwrites,
                         position,

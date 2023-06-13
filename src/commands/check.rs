@@ -167,14 +167,14 @@ impl CheckCommand {
                     Some(channel) => {
                         invite_check_channels.insert(channel.channel_id, Vec::new());
 
-                        Some((channel.channel_id, channel.position))
+                        Some((channel.channel_id, channel.name.clone(), channel.position))
                     }
                     None => None,
                 }
             })
-            .collect::<Vec<(Id<ChannelMarker>, i32)>>();
+            .collect::<Vec<(Id<ChannelMarker>, String, i32)>>();
 
-        category_channels.sort_unstable_by(|a, b| a.1.cmp(&b.1));
+        category_channels.sort_unstable_by(|a, b| a.2.cmp(&b.2));
 
         for channel_id in guild_channel_ids {
             if let Some(channel) = context.cache.get_channel(channel_id) {
@@ -197,7 +197,7 @@ impl CheckCommand {
         let mut total_invalid = 0u16;
         let mut total_unknown = 0u16;
 
-        for (category_channel_id, _) in category_channels {
+        for (category_channel_id, category_name, _) in category_channels {
             let mut description = Vec::new();
 
             if let Some(child_channels) = invite_check_channels.get_mut(&category_channel_id) {
@@ -238,6 +238,7 @@ impl CheckCommand {
             let embed = EmbedBuilder::new()
                 .color(embed_color)
                 .description(description.join("\n"))
+                .title(format!("The \"{category_name}\" category"))
                 .build();
 
             context
