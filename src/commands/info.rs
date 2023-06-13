@@ -39,28 +39,30 @@ impl InfoCommand {
                     .description("Click/tap the button that interests you!")
                     .title("Documents")
                     .build();
-                let components = vec![
-                    Component::ActionRow(ActionRow {
-                        components: vec![
-                            Component::Button(Button {
-                                custom_id: None,
-                                disabled: false,
-                                emoji: None,
-                                label: Some("Privacy Policy".to_owned()),
-                                style: ButtonStyle::Link,
-                                url: Some("https://github.com/Chiitoi/Sakura-RS/blob/main/docs/PRIVACY_POLICY.md".to_owned())
-                            }),
-                            Component::Button(Button {
-                                custom_id: None,
-                                disabled: false,
-                                emoji: None,
-                                label: Some("Terms of Service".to_owned()),
-                                style: ButtonStyle::Link,
-                                url: Some("https://github.com/Chiitoi/Sakura-RS/blob/main/docs/TERMS_OF_SERVICE.md".to_owned())
-                            })
-                        ]
-                    })
-                ];
+                let components = vec![Component::ActionRow(ActionRow {
+                    components: vec![
+                        Component::Button(Button {
+                            custom_id: None,
+                            disabled: false,
+                            emoji: None,
+                            label: Some("Privacy Policy".to_owned()),
+                            style: ButtonStyle::Link,
+                            url: Some(
+                                "https://github.com/Chiitoi/Sakura-RS/blob/main/docs/PRIVACY_POLICY.md".to_owned(),
+                            ),
+                        }),
+                        Component::Button(Button {
+                            custom_id: None,
+                            disabled: false,
+                            emoji: None,
+                            label: Some("Terms of Service".to_owned()),
+                            style: ButtonStyle::Link,
+                            url: Some(
+                                "https://github.com/Chiitoi/Sakura-RS/blob/main/docs/TERMS_OF_SERVICE.md".to_owned(),
+                            ),
+                        }),
+                    ],
+                })];
 
                 ResponsePayload {
                     components: Some(components),

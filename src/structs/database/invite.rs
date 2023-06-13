@@ -13,7 +13,7 @@ impl Database {
     pub async fn get_guild_invite_counts(
         &self,
         guild_id: Id<GuildMarker>,
-    ) -> Result<HashMap<Id<ChannelMarker>, (u16, u16)>> {
+    ) -> Result<HashMap<Id<ChannelMarker>, (u16, u16, u16)>> {
         let client = self.pool.get().await?;
 
         let statement = "
@@ -21,7 +21,11 @@ impl Database {
                 SELECT
                     public.message.channel_id,
                     _.code,
-                    COALESCE(public.invite.is_valid, FALSE) AS is_valid
+                    COALESCE(public.invite.is_valid, FALSE) AS is_valid,
+                    CASE
+                        WHEN public.invite.updated_at IS NULL THEN FALSE
+                        ELSE TRUE
+                    END AS is_updated
                 FROM
                     public.message,
                     UNNEST(public.message.invite_codes) _(code)
@@ -31,23 +35,25 @@ impl Database {
             )
             SELECT
                 channel_id,
-                COUNT(*) FILTER (WHERE guild_invite.is_valid)::INT2 AS good_invites,
-                COUNT(*) FILTER (WHERE NOT guild_invite.is_valid)::INT2 AS bad_invites
+                COUNT(*) FILTER (WHERE guild_invite.is_valid AND guild_invite.is_updated)::INT2 AS valid_invites,
+                COUNT(*) FILTER (WHERE NOT guild_invite.is_valid AND guild_invite.is_updated)::INT2 AS invalid_invites,
+                COUNT(*) FILTER (WHERE NOT guild_invite.is_updated)::INT2 AS unknown_invites
             FROM
                 guild_invite
             GROUP BY
                 guild_invite.channel_id;      
         ";
         let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64)];
-        let mut invite_check: HashMap<Id<ChannelMarker>, (u16, u16)> = HashMap::new();
+        let mut invite_check: HashMap<Id<ChannelMarker>, (u16, u16, u16)> = HashMap::new();
 
         if let Ok(rows) = client.query(statement, params).await {
             for row in rows {
                 invite_check.insert(
                     Id::new(row.get::<_, i64>("channel_id") as u64),
                     (
-                        row.get::<_, i16>("good_invites") as u16,
-                        row.get::<_, i16>("bad_invites") as u16,
+                        row.get::<_, i16>("valid_invites") as u16,
+                        row.get::<_, i16>("invalid_invites") as u16,
+                        row.get::<_, i16>("unknown_invites") as u16,
                     ),
                 );
             }
@@ -58,7 +64,7 @@ impl Database {
 
     pub async fn get_unchecked_invites(
         &self,
-        limit: u8,
+        limit: u64,
     ) -> Result<Vec<String>> {
         let client = self.pool.get().await?;
 
@@ -70,10 +76,10 @@ impl Database {
             WHERE
                 updated_at IS NULL
             ORDER BY
-                created_at ASC
+                inserted_at
             LIMIT $1;
         ";
-        let params: &[&(dyn ToSql + Sync)] = &[&(limit as i8)];
+        let params: &[&(dyn ToSql + Sync)] = &[&(limit as i64)];
         let rows = client.query(statement, params).await?;
         let codes = rows
             .into_iter()

@@ -11,23 +11,49 @@ use crate::{
 
 #[cold]
 pub async fn handle_tasks(context: Arc<Context>) -> Result<()> {
+    // Wait while the jobs run
+    sleep(Duration::from_secs(60)).await;
+
     let scheduler: JobScheduler = JobScheduler::new().await?;
-    let unchecked_invites_task_context = context.clone();
+    let unchecked_invites_task_context_one = context.clone();
+    let unchecked_invites_task_context_two = context.clone();
+    let unchecked_invites_task_context_three = context.clone();
     let recycle_invites_task_context = context.clone();
 
     scheduler
-        .add(Job::new_async(
-            "*/10 * 1-22 * * 1-6",
-            move |_uuid, _lock| {
-                let unchecked_invites_task_context = unchecked_invites_task_context.clone();
+        .add(Job::new_async("*/20 * 1-23 * * 1", move |_uuid, _lock| {
+            let unchecked_invites_task_context = unchecked_invites_task_context_one.clone();
 
-                Box::pin(async move {
-                    handle_unchecked_invites_task(unchecked_invites_task_context)
-                        .await
-                        .unwrap();
-                })
-            },
-        )?)
+            Box::pin(async move {
+                handle_unchecked_invites_task(unchecked_invites_task_context)
+                    .await
+                    .unwrap();
+            })
+        })?)
+        .await?;
+
+    scheduler
+        .add(Job::new_async("*/20 * * * * 2-5", move |_uuid, _lock| {
+            let unchecked_invites_task_context = unchecked_invites_task_context_two.clone();
+
+            Box::pin(async move {
+                handle_unchecked_invites_task(unchecked_invites_task_context)
+                    .await
+                    .unwrap();
+            })
+        })?)
+        .await?;
+
+    scheduler
+        .add(Job::new_async("*/20 * 0-22 * * 6", move |_uuid, _lock| {
+            let unchecked_invites_task_context = unchecked_invites_task_context_three.clone();
+
+            Box::pin(async move {
+                handle_unchecked_invites_task(unchecked_invites_task_context)
+                    .await
+                    .unwrap();
+            })
+        })?)
         .await?;
 
     scheduler
@@ -44,9 +70,6 @@ pub async fn handle_tasks(context: Arc<Context>) -> Result<()> {
 
     // Start the scheduler
     scheduler.start().await?;
-
-    // Wait while the jobs run
-    sleep(Duration::from_secs(10)).await;
 
     Ok(())
 }

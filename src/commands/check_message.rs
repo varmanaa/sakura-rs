@@ -98,11 +98,10 @@ impl CheckMessageCommand {
 
         if !is_within_added_category {
             let embed = embed_builder
-            .description(
-                "Please ensure this message is within an **added** category before checking it."
-                    .to_owned(),
-            )
-            .build();
+                .description(
+                    "Please ensure this message is within an **added** category before checking it.".to_owned(),
+                )
+                .build();
 
             interaction
                 .update_response(UpdateResponsePayload {

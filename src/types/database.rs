@@ -48,6 +48,6 @@ pub struct InviteCheckCreatePayload {
     pub start_time: OffsetDateTime,
     pub end_time: OffsetDateTime,
     pub channels: i64,
-    pub good_invites: i64,
-    pub bad_invites: i64,
+    pub valid_invites: i64,
+    pub invalid_invites: i64,
 }

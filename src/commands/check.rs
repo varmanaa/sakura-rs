@@ -1,6 +1,10 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Duration,
+};
 
 use time::OffsetDateTime;
+use tokio::time::sleep;
 use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_model::id::{marker::ChannelMarker, Id};
 use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder};
@@ -189,47 +193,51 @@ impl CheckCommand {
             .get_guild_invite_counts(interaction.guild_id)
             .await?;
         let mut total_channels = 0u16;
-        let mut total_bad = 0u16;
-        let mut total_good = 0u16;
+        let mut total_valid = 0u16;
+        let mut total_invalid = 0u16;
+        let mut total_unknown = 0u16;
 
         for (category_channel_id, _) in category_channels {
-            let description =
-                if let Some(child_channels) = invite_check_channels.get_mut(&category_channel_id) {
-                    total_channels += child_channels.len() as u16;
-                    child_channels.sort_unstable_by(|a, b| a.1.cmp(&b.1));
+            let mut description = Vec::new();
 
-                    child_channels
-                        .iter()
-                        .map(|(child_channel_id, _)| {
-                            if ignored_channel_ids.contains(child_channel_id) {
-                                format!("⚪ <#{child_channel_id}> - **IGNORED**")
-                            } else {
-                                let (good, bad) = guild_invite_counts
-                                    .get(&child_channel_id)
-                                    .cloned()
-                                    .unwrap_or((0, 0));
-                                let total = good + bad;
+            if let Some(child_channels) = invite_check_channels.get_mut(&category_channel_id) {
+                total_channels += child_channels.len() as u16;
+                child_channels.sort_unstable_by(|a, b| a.1.cmp(&b.1));
 
-                                total_bad += bad;
-                                total_good += good;
+                for (child_channel_id, _) in child_channels {
+                    if ignored_channel_ids.contains(child_channel_id) {
+                        description.push(format!("⚪ <#{child_channel_id}> - **IGNORED**"))
+                    } else if let Some((valid, invalid, unknown)) =
+                        guild_invite_counts.get(&child_channel_id).cloned()
+                    {
+                        let total = valid + invalid + unknown;
 
-                                if bad > 0 {
-                                    format!(
-                                    "🔴 <#{child_channel_id}> - **{total}** total (**{bad}** bad)"
-                                )
-                                } else {
-                                    format!("🟢 <#{child_channel_id}> - **{total}** total")
-                                }
-                            }
-                        })
-                        .collect::<Vec<String>>()
-                        .join("\n")
-                } else {
-                    "No channels to check in this category.".to_owned()
-                };
+                        total_valid += valid;
+                        total_invalid += invalid;
+                        total_unknown += unknown;
+
+                        if unknown > 0 {
+                            description.push(format!("⚪ <#{child_channel_id}> - **{total}** total (**{unknown}** unknown)"))
+                        } else if invalid > 0 {
+                            description.push(format!(
+                                "🔴 <#{child_channel_id}> - **{total}** total (**{invalid}** invalid)"
+                            ))
+                        } else {
+                            description
+                                .push(format!("🟢 <#{child_channel_id}> - **{total}** total"))
+                        }
+                    } else {
+                        description
+                            .push(format!("⚪ <#{child_channel_id}> - **UNTRACKED CHANNEL**"))
+                    }
+                }
+            } else {
+                description.push("No channels to check in this category.".to_owned())
+            }
+
             let embed = EmbedBuilder::new()
                 .color(embed_color)
-                .description(description)
+                .description(description.join("\n"))
                 .build();
 
             context
@@ -237,6 +245,8 @@ impl CheckCommand {
                 .create_message(results_channel_id)
                 .embeds(&[embed])?
                 .await?;
+
+            sleep(Duration::from_secs(1)).await;
         }
 
         let end_time = OffsetDateTime::now_utc();
@@ -258,15 +268,22 @@ impl CheckCommand {
                     ),
                     format!(
                         "- **{}** invite(s) checked",
-                        add_commas((total_bad + total_good) as u128)
+                        add_commas((total_valid + total_invalid + total_unknown) as u128)
                     ),
                     format!(
-                        "- **{total_bad}** ({:.2}%) invalid invite(s)",
-                        (total_bad * 100) as f32 / (total_bad + total_good) as f32
+                        "- **{total_valid}** ({:.2}%) valid invite(s)",
+                        (total_valid * 100) as f32
+                            / (total_valid + total_invalid + total_unknown) as f32
                     ),
                     format!(
-                        "- **{total_good}** ({:.2}%) valid invite(s)",
-                        (total_good * 100) as f32 / (total_bad + total_good) as f32
+                        "- **{total_invalid}** ({:.2}%) invalid invite(s)",
+                        (total_invalid * 100) as f32
+                            / (total_valid + total_invalid + total_unknown) as f32
+                    ),
+                    format!(
+                        "- **{total_unknown}** ({:.2}%) unknown invite(s)",
+                        (total_unknown * 100) as f32
+                            / (total_valid + total_invalid + total_unknown) as f32
                     ),
                 ]
                 .join("\n"),
@@ -289,8 +306,8 @@ impl CheckCommand {
                 start_time,
                 end_time,
                 channels: total_channels as i64,
-                good_invites: total_good as i64,
-                bad_invites: total_bad as i64,
+                valid_invites: total_valid as i64,
+                invalid_invites: total_invalid as i64,
             })
             .await?;
 
