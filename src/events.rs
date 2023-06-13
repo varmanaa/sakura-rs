@@ -262,6 +262,13 @@ pub async fn handle_event(
                                 let embeds = payload.embeds.unwrap_or_default();
                                 let invite_codes = get_invite_codes(content, embeds);
 
+                                for invite_code in invite_codes.clone() {
+                                    context
+                                        .database
+                                        .insert_unchecked_invite(&invite_code)
+                                        .await?;
+                                }
+
                                 context
                                     .database
                                     .insert_message(
