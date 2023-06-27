@@ -10,6 +10,7 @@ use crate::{
         check::CheckCommand,
         check_message::CheckMessageCommand,
         config::ConfigCommand,
+        counts::CountsCommand,
         info::InfoCommand,
         latency::LatencyCommand,
     },
@@ -168,6 +169,7 @@ pub async fn handle_event(
                         "Check message" => CheckMessageCommand::run(&context, interaction).await?,
                         "check" => CheckCommand::run(&context, interaction).await?,
                         "config" => ConfigCommand::run(&context, interaction).await?,
+                        "counts" => CountsCommand::run(&context, interaction).await?,
                         "info" => InfoCommand::run(&context, interaction).await?,
                         "latency" => LatencyCommand::run(&context, interaction).await?,
                         name => {
