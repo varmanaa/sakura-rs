@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap},
-    time::Duration,
-};
+use std::{collections::HashMap, time::Duration};
 
 use time::OffsetDateTime;
 use tokio::time::sleep;
@@ -13,10 +10,7 @@ use crate::{
     types::{
         context::Context,
         database::InviteCheckCreatePayload,
-        interaction::{
-            ApplicationCommandInteraction,
-            UpdateResponsePayload,
-        },
+        interaction::{ApplicationCommandInteraction, UpdateResponsePayload},
         Result,
     },
     utility::{decimal::add_commas, error::Error, time::humanize},
@@ -165,7 +159,7 @@ impl CheckCommand {
                 Some(child_channels) => {
                     total_channels += child_channels.len() as u16;
                     child_channels.sort_unstable_by(|a, b| a.1.cmp(&b.1));
-                
+
                     child_channels
                         .into_iter()
                         .map(|(child_channel_id, _)| {
@@ -178,7 +172,7 @@ impl CheckCommand {
                                 total_valid += valid;
                                 total_invalid += invalid;
                                 total_unknown += unknown;
-        
+
                                 if unknown > 0 {
                                     format!("⚪ <#{child_channel_id}> - **{total}** total (**{unknown}** unknown)")
                                 } else if invalid > 0 {
