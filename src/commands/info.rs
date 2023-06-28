@@ -29,7 +29,7 @@ pub struct InfoCommand {
 impl InfoCommand {
     pub async fn run(
         _context: &Context,
-        mut interaction: ApplicationCommandInteraction<'_>,
+        interaction: &mut ApplicationCommandInteraction<'_>,
     ) -> Result<()> {
         let options = InfoCommand::from_interaction(interaction.input_data())?;
         let payload = match options.query {

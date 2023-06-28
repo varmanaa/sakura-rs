@@ -1,10 +1,13 @@
 use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_util::builder::embed::EmbedBuilder;
 
-use crate::types::{
-    context::Context,
-    interaction::{ApplicationCommandInteraction, DeferInteractionPayload, UpdateResponsePayload},
-    Result,
+use crate::{
+    types::{
+        context::Context,
+        interaction::{ApplicationCommandInteraction, UpdateResponsePayload},
+        Result,
+    },
+    utility::error::Error,
 };
 
 #[derive(CommandModel, CreateCommand, Debug)]
@@ -23,21 +26,44 @@ pub struct ConfigSetEmbedColorCommand {
 impl ConfigSetEmbedColorCommand {
     pub async fn run(
         context: &Context,
-        interaction: ApplicationCommandInteraction<'_>,
+        interaction: &mut ApplicationCommandInteraction<'_>,
         options: Self,
     ) -> Result<()> {
-        interaction
-            .defer(DeferInteractionPayload {
-                ephemeral: false,
-            })
-            .await?;
-
-        let database_guild = match context.database.get_guild(interaction.guild_id).await {
-            Some(database_guild) => database_guild,
+        match context.database.get_guild(interaction.guild_id).await {
             None => {
+                return Err(Error::Custom(
+                    "Please kick and re-invite Sakura-RS.".to_owned(),
+                ))
+            }
+            Some(database_guild) => {
+                let hex_code = format!("{:0>6}", options.hex_code.to_uppercase());
+
+                if hex_code.chars().any(|char| char.to_digit(16).is_none()) {
+                    return Err(Error::Custom(format!(
+                        "**#{hex_code}** is not a valid hex code."
+                    )));
+                }
+
+                let current_hex_code = format!("{:#06}", database_guild.embed_color);
+
+                if hex_code.eq(&current_hex_code) {
+                    return Err(Error::Custom(format!(
+                        "**#{hex_code}** is already your chosen embed color."
+                    )));
+                }
+
+                let color = i32::from_str_radix(&hex_code, 16).unwrap();
+
+                context
+                    .database
+                    .insert_embed_color(interaction.guild_id, color)
+                    .await?;
+
                 let embed = EmbedBuilder::new()
                     .color(0xF8F8FF)
-                    .description("Please kick and invite Sakura-RS.")
+                    .description(format!(
+                        "The embed color for invite check embeds is now **#{hex_code}**."
+                    ))
                     .build();
 
                 interaction
@@ -45,36 +71,8 @@ impl ConfigSetEmbedColorCommand {
                         embeds: Some(&[embed]),
                     })
                     .await?;
-
-                return Ok(());
             }
         };
-        let current_hex_code = format!("{:#06}", database_guild.embed_color);
-        let hex_code = format!("{:0>6}", options.hex_code.to_uppercase());
-        let description = if hex_code.chars().any(|char| char.to_digit(16).is_none()) {
-            format!("**#{hex_code}** is not a valid hex code.")
-        } else if current_hex_code == hex_code {
-            format!("**#{hex_code}** is already your chosen embed color.")
-        } else {
-            let color = i32::from_str_radix(&hex_code, 16).unwrap();
-
-            context
-                .database
-                .insert_embed_color(interaction.guild_id, color)
-                .await?;
-
-            format!("The embed color for invite check embeds is now **#{hex_code}**.")
-        };
-        let embed = EmbedBuilder::new()
-            .color(0xF8F8FF)
-            .description(description)
-            .build();
-
-        interaction
-            .update_response(UpdateResponsePayload {
-                embeds: Some(&[embed]),
-            })
-            .await?;
 
         Ok(())
     }

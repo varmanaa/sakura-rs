@@ -2,10 +2,13 @@ use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_model::id::{marker::ChannelMarker, Id};
 use twilight_util::builder::embed::EmbedBuilder;
 
-use crate::types::{
-    context::Context,
-    interaction::{ApplicationCommandInteraction, DeferInteractionPayload, UpdateResponsePayload},
-    Result,
+use crate::{
+    types::{
+        context::Context,
+        interaction::{ApplicationCommandInteraction, UpdateResponsePayload},
+        Result,
+    },
+    utility::error::Error,
 };
 
 #[derive(CommandModel, CreateCommand)]
@@ -24,21 +27,34 @@ pub struct ConfigAddIgnoredChannelCommand {
 impl ConfigAddIgnoredChannelCommand {
     pub async fn run(
         context: &Context,
-        interaction: ApplicationCommandInteraction<'_>,
+        interaction: &mut ApplicationCommandInteraction<'_>,
         options: Self,
     ) -> Result<()> {
-        interaction
-            .defer(DeferInteractionPayload {
-                ephemeral: false,
-            })
-            .await?;
-
-        let database_guild = match context.database.get_guild(interaction.guild_id).await {
-            Some(database_guild) => database_guild,
+        match context.database.get_guild(interaction.guild_id).await {
             None => {
+                return Err(Error::Custom(
+                    "Please kick and re-invite Sakura-RS.".to_owned(),
+                ))
+            }
+            Some(database_guild) => {
+                let channel_id = options.channel;
+
+                if database_guild.ignored_channel_ids.contains(&channel_id) {
+                    return Err(Error::Custom(format!(
+                        "<#{channel_id}> is already an ignored channel."
+                    )));
+                }
+
+                context
+                    .database
+                    .insert_ignored_channel(interaction.guild_id, channel_id)
+                    .await?;
+
                 let embed = EmbedBuilder::new()
                     .color(0xF8F8FF)
-                    .description("Please kick and invite Sakura-RS.")
+                    .description(format!(
+                        "<#{channel_id}> will now be ignored during invite checks."
+                    ))
                     .build();
 
                 interaction
@@ -46,31 +62,8 @@ impl ConfigAddIgnoredChannelCommand {
                         embeds: Some(&[embed]),
                     })
                     .await?;
-
-                return Ok(());
             }
         };
-        let channel_id = options.channel;
-        let description = if database_guild.ignored_channel_ids.contains(&channel_id) {
-            format!("<#{channel_id}> is already an ignored channel.")
-        } else {
-            context
-                .database
-                .insert_ignored_channel(interaction.guild_id, channel_id)
-                .await?;
-
-            format!("<#{channel_id}> will now be ignored during invite checks.")
-        };
-        let embed = EmbedBuilder::new()
-            .color(0xF8F8FF)
-            .description(description)
-            .build();
-
-        interaction
-            .update_response(UpdateResponsePayload {
-                embeds: Some(&[embed]),
-            })
-            .await?;
 
         Ok(())
     }

@@ -4,11 +4,7 @@ use twilight_util::builder::embed::EmbedBuilder;
 use crate::{
     types::{
         context::Context,
-        interaction::{
-            ApplicationCommandInteraction,
-            DeferInteractionPayload,
-            UpdateResponsePayload,
-        },
+        interaction::{ApplicationCommandInteraction, UpdateResponsePayload},
         Result,
     },
     utility::decimal::add_commas,
@@ -21,29 +17,24 @@ pub struct LatencyCommand {}
 impl LatencyCommand {
     pub async fn run(
         _context: &Context,
-        interaction: ApplicationCommandInteraction<'_>,
+        interaction: &ApplicationCommandInteraction<'_>,
     ) -> Result<()> {
-        interaction
-            .defer(DeferInteractionPayload {
-                ephemeral: false,
-            })
-            .await?;
-
         let response = interaction.response().await?;
-        let rtt = add_commas(
-            (((response.id.get() >> 22) + 1_420_070_400_000)
-                - ((interaction.id.get() >> 22) + 1_420_070_400_000)) as u128,
+        let rtt_ms = (((response.id.get() >> 22) + 1_420_070_400_000)
+            - ((interaction.id.get() >> 22) + 1_420_070_400_000)) as u128;
+        let rtt_ms_with_commas = add_commas(rtt_ms);
+        let description = interaction.latency.average().map_or(
+            format!("🚀 **RTT**: {rtt_ms_with_commas} ms"),
+            |duration| {
+                let duration_ms = duration.as_millis();
+                let duration_ms_with_commas = add_commas(duration_ms);
+
+                format!(
+                    "🏓 **Shard:** {} ms\n🚀 **RTT**: {rtt_ms_with_commas} ms",
+                    duration_ms_with_commas
+                )
+            },
         );
-        let description =
-            interaction
-                .latency
-                .average()
-                .map_or(format!("🚀 **RTT**: {rtt} ms"), |duration| {
-                    format!(
-                        "🏓 **Shard:** {} ms\n🚀 **RTT**: {rtt} ms",
-                        add_commas(duration.as_millis())
-                    )
-                });
         let embed = EmbedBuilder::new()
             .color(0xF8F8FF)
             .description(description)

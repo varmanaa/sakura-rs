@@ -51,15 +51,16 @@ impl Database {
         ";
         let params: &[&(dyn ToSql + Sync)] =
             &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
-        let updated_category_channel_ids = match client.query_one(statement, params).await {
-            Ok(row) => {
-                row.get::<_, Vec<i64>>("category_channel_ids")
-                    .into_iter()
-                    .map(|id| Id::new(id as u64))
-                    .collect::<HashSet<Id<ChannelMarker>>>()
-            }
-            Err(_) => HashSet::new(),
-        };
+        let updated_category_channel_ids =
+            client
+                .query_one(statement, params)
+                .await
+                .map_or(HashSet::new(), |row| {
+                    row.get::<_, Vec<i64>>("category_channel_ids")
+                        .into_iter()
+                        .map(|id| Id::new(id as u64))
+                        .collect::<HashSet<Id<ChannelMarker>>>()
+                });
 
         Ok(updated_category_channel_ids)
     }
@@ -167,15 +168,16 @@ impl Database {
         ";
         let params: &[&(dyn ToSql + Sync)] =
             &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
-        let updated_category_channel_ids = match client.query_one(statement, params).await {
-            Ok(row) => {
-                row.get::<_, Vec<i64>>("category_channel_ids")
-                    .into_iter()
-                    .map(|id| Id::new(id as u64))
-                    .collect::<HashSet<Id<ChannelMarker>>>()
-            }
-            Err(_) => HashSet::new(),
-        };
+        let updated_category_channel_ids =
+            client
+                .query_one(statement, params)
+                .await
+                .map_or(HashSet::new(), |row| {
+                    row.get::<_, Vec<i64>>("category_channel_ids")
+                        .into_iter()
+                        .map(|id| Id::new(id as u64))
+                        .collect::<HashSet<Id<ChannelMarker>>>()
+                });
 
         Ok(updated_category_channel_ids)
     }

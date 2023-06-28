@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap},
     time::Duration,
 };
 
@@ -15,7 +15,6 @@ use crate::{
         database::InviteCheckCreatePayload,
         interaction::{
             ApplicationCommandInteraction,
-            DeferInteractionPayload,
             UpdateResponsePayload,
         },
         Result,
@@ -30,21 +29,15 @@ pub struct CheckCommand {}
 impl CheckCommand {
     pub async fn run(
         context: &Context,
-        interaction: ApplicationCommandInteraction<'_>,
+        interaction: &ApplicationCommandInteraction<'_>,
     ) -> Result<()> {
-        interaction
-            .defer(DeferInteractionPayload {
-                ephemeral: false,
-            })
-            .await?;
-
-        let pre_check_result: Result<(
-            HashSet<Id<ChannelMarker>>,
-            HashSet<Id<ChannelMarker>>,
-            u32,
-            HashSet<Id<ChannelMarker>>,
-            Id<ChannelMarker>,
-        )> = match (
+        let (
+            guild_channel_ids,
+            category_channel_ids,
+            embed_color,
+            ignored_channel_ids,
+            results_channel_id,
+        ) = match (
             context.cache.get_guild(interaction.guild_id),
             context.database.get_guild(interaction.guild_id).await,
         ) {
@@ -63,6 +56,11 @@ impl CheckCommand {
                 }
 
                 let results_channel_id = match database_guild.results_channel_id {
+                    None => {
+                        return Err(Error::Custom(
+                            "You have not set a \"results channel\".".to_owned(),
+                        ))
+                    }
                     Some(results_channel_id) => {
                         if context.cache.get_channel(results_channel_id).is_none() {
                             return Err(Error::Custom(
@@ -78,20 +76,15 @@ impl CheckCommand {
 
                         results_channel_id
                     }
-                    None => {
-                        return Err(Error::Custom(
-                            "You have not set a \"results channel\".".to_owned(),
-                        ))
-                    }
                 };
 
-                Ok((
+                (
                     cached_guild.channel_ids.read().clone(),
                     database_guild.category_channel_ids,
                     database_guild.embed_color as u32,
                     database_guild.ignored_channel_ids,
                     results_channel_id,
-                ))
+                )
             }
             _ => {
                 return Err(Error::Custom(
@@ -99,44 +92,6 @@ impl CheckCommand {
                 ))
             }
         };
-        let (
-            guild_channel_ids,
-            category_channel_ids,
-            embed_color,
-            ignored_channel_ids,
-            results_channel_id,
-        ) = match pre_check_result {
-            Ok((
-                guild_channel_ids,
-                category_channel_ids,
-                embed_color,
-                ignored_channel_ids,
-                results_channel_id,
-            )) => {
-                (
-                    guild_channel_ids,
-                    category_channel_ids,
-                    embed_color,
-                    ignored_channel_ids,
-                    results_channel_id,
-                )
-            }
-            Err(error) => {
-                let embed = EmbedBuilder::new()
-                    .color(0xF8F8FF)
-                    .description(error.to_string())
-                    .build();
-
-                interaction
-                    .update_response(UpdateResponsePayload {
-                        embeds: Some(&[embed]),
-                    })
-                    .await?;
-
-                return Ok(());
-            }
-        };
-
         context
             .cache
             .update_guild(interaction.guild_id, Some(true), None, None);
@@ -158,32 +113,39 @@ impl CheckCommand {
             })
             .await?;
 
-        let mut invite_check_channels: HashMap<Id<ChannelMarker>, Vec<(Id<ChannelMarker>, i32)>> =
-            HashMap::new();
-        let mut category_channels = category_channel_ids
+        let mut sorted_category_channels = category_channel_ids
             .iter()
             .filter_map(|channel_id| {
-                match context.cache.get_channel(*channel_id) {
-                    Some(channel) => {
-                        invite_check_channels.insert(channel.channel_id, Vec::new());
-
-                        Some((channel.channel_id, channel.name.clone(), channel.position))
-                    }
-                    None => None,
-                }
+                context.cache.get_channel(*channel_id).and_then(|channel| {
+                    Some((channel.channel_id, channel.name.clone(), channel.position))
+                })
             })
             .collect::<Vec<(Id<ChannelMarker>, String, i32)>>();
 
-        category_channels.sort_unstable_by(|a, b| a.2.cmp(&b.2));
+        sorted_category_channels.sort_unstable_by(|a, b| a.2.cmp(&b.2));
 
-        for channel_id in guild_channel_ids {
-            if let Some(channel) = context.cache.get_channel(channel_id) {
-                if let Some(parent_id) = channel.parent_id {
-                    if category_channel_ids.contains(&parent_id) {
-                        if let Some(child_channels) = invite_check_channels.get_mut(&parent_id) {
-                            child_channels.push((channel_id, channel.position))
-                        }
-                    }
+        let mut child_channels_in_categories: HashMap<
+            Id<ChannelMarker>,
+            Vec<(Id<ChannelMarker>, i32)>,
+        > = HashMap::new();
+
+        for channel_id in guild_channel_ids.into_iter() {
+            let channel = match context.cache.get_channel(channel_id) {
+                Some(channel) => channel,
+                None => continue,
+            };
+            let parent_id = match channel.parent_id {
+                Some(parent_id) if category_channel_ids.contains(&parent_id) => parent_id,
+                _ => continue,
+            };
+
+            match child_channels_in_categories.get_mut(&parent_id) {
+                None => {
+                    child_channels_in_categories
+                        .insert(parent_id, vec![(channel_id, channel.position)]);
+                }
+                Some(child_channels_in_category) => {
+                    child_channels_in_category.push((channel_id, channel.position));
                 }
             }
         }
@@ -197,47 +159,46 @@ impl CheckCommand {
         let mut total_invalid = 0u16;
         let mut total_unknown = 0u16;
 
-        for (category_channel_id, category_name, _) in category_channels {
-            let mut description = Vec::new();
+        for (category_channel_id, category_name, _) in sorted_category_channels {
+            let description = match child_channels_in_categories.get_mut(&category_channel_id) {
+                None => "No channels to check in this category.".to_owned(),
+                Some(child_channels) => {
+                    total_channels += child_channels.len() as u16;
+                    child_channels.sort_unstable_by(|a, b| a.1.cmp(&b.1));
+                
+                    child_channels
+                        .into_iter()
+                        .map(|(child_channel_id, _)| {
+                            if ignored_channel_ids.contains(child_channel_id) {
+                                format!("⚪ <#{child_channel_id}> - **IGNORED**")
+                            } else if let Some((valid, invalid, unknown)) =
+                            guild_invite_counts.get(&child_channel_id).cloned() {
+                                let total = valid + invalid + unknown;
 
-            if let Some(child_channels) = invite_check_channels.get_mut(&category_channel_id) {
-                total_channels += child_channels.len() as u16;
-                child_channels.sort_unstable_by(|a, b| a.1.cmp(&b.1));
-
-                for (child_channel_id, _) in child_channels {
-                    if ignored_channel_ids.contains(child_channel_id) {
-                        description.push(format!("⚪ <#{child_channel_id}> - **IGNORED**"))
-                    } else if let Some((valid, invalid, unknown)) =
-                        guild_invite_counts.get(&child_channel_id).cloned()
-                    {
-                        let total = valid + invalid + unknown;
-
-                        total_valid += valid;
-                        total_invalid += invalid;
-                        total_unknown += unknown;
-
-                        if unknown > 0 {
-                            description.push(format!("⚪ <#{child_channel_id}> - **{total}** total (**{unknown}** unknown)"))
-                        } else if invalid > 0 {
-                            description.push(format!(
-                                "🔴 <#{child_channel_id}> - **{total}** total (**{invalid}** invalid)"
-                            ))
-                        } else {
-                            description
-                                .push(format!("🟢 <#{child_channel_id}> - **{total}** total"))
-                        }
-                    } else {
-                        description
-                            .push(format!("⚪ <#{child_channel_id}> - **UNTRACKED CHANNEL**"))
-                    }
+                                total_valid += valid;
+                                total_invalid += invalid;
+                                total_unknown += unknown;
+        
+                                if unknown > 0 {
+                                    format!("⚪ <#{child_channel_id}> - **{total}** total (**{unknown}** unknown)")
+                                } else if invalid > 0 {
+                                    format!(
+                                        "🔴 <#{child_channel_id}> - **{total}** total (**{invalid}** invalid)"
+                                    )
+                                } else {
+                                    format!("🟢 <#{child_channel_id}> - **{total}** total")
+                                }
+                            } else {
+                                format!("⚪ <#{child_channel_id}> - **UNTRACKED CHANNEL**")
+                            }
+                        })
+                        .collect::<Vec<String>>()
+                        .join("\n")
                 }
-            } else {
-                description.push("No channels to check in this category.".to_owned())
-            }
-
+            };
             let embed = EmbedBuilder::new()
                 .color(embed_color)
-                .description(description.join("\n"))
+                .description(description)
                 .title(format!("The \"{category_name}\" category"))
                 .build();
 

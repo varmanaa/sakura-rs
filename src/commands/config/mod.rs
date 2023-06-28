@@ -41,7 +41,7 @@ pub enum ConfigCommand {
 impl ConfigCommand {
     pub async fn run(
         context: &Context,
-        mut interaction: ApplicationCommandInteraction<'_>,
+        interaction: &mut ApplicationCommandInteraction<'_>,
     ) -> Result<()> {
         match ConfigCommand::from_interaction(interaction.input_data())? {
             ConfigCommand::AddCategoryChannel(options) => {
