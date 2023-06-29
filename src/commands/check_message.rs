@@ -24,14 +24,15 @@ impl CheckMessageCommand {
         match interaction.message() {
             None => return Err(Error::Custom("I could not find a message.".to_owned())),
             Some(message) => {
-                let channel =
-                    match context.cache.get_channel(message.channel_id) {
-                        None => return Err(Error::Custom(
+                let channel = match context.cache.get_channel(message.channel_id) {
+                    None => {
+                        return Err(Error::Custom(
                             "Sakura only looks at messages in announcement and text channels."
                                 .to_owned(),
-                        )),
-                        Some(channel) => channel,
-                    };
+                        ))
+                    }
+                    Some(channel) => channel,
+                };
                 let parent_id =
                     match channel.parent_id {
                         None => return Err(Error::Custom(
