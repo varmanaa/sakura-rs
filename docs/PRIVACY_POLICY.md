@@ -5,7 +5,7 @@ Last revised: June 28, 2023
 
 This document aims to be a transparent resource explaining Sakura's practices with respect to your data. For the purposes of this document,
 
-- "Sakura" refers to the chat bot, with the username "Sakura#3774", for the [Discord chat platform](https://discord.com/), and
+- "Sakura" refers to the chat bot, with the username "Sakura#2506", for the [Discord chat platform](https://discord.com/), and
 - "We" refers to Sakura's developer(s).
 
 ## The information we collect
