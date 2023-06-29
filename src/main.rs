@@ -51,10 +51,13 @@ async fn main() -> types::Result<()> {
             .interaction_client()
             .set_global_commands(&commands)
             .await?;
-        context
-            .interaction_client()
-            .set_guild_commands(*DEVELOPMENT_GUILD_ID, &[])
-            .await?;
+
+        if context.cache.get_guild(*DEVELOPMENT_GUILD_ID).is_some() {
+            context
+                .interaction_client()
+                .set_guild_commands(*DEVELOPMENT_GUILD_ID, &[])
+                .await?;
+        }
     }
 
     #[cfg(not(feature = "production"))]
@@ -63,10 +66,13 @@ async fn main() -> types::Result<()> {
             .interaction_client()
             .set_global_commands(&[])
             .await?;
-        context
-            .interaction_client()
-            .set_guild_commands(*DEVELOPMENT_GUILD_ID, &commands)
-            .await?;
+
+        if context.cache.get_guild(*DEVELOPMENT_GUILD_ID).is_some() {
+            context
+                .interaction_client()
+                .set_guild_commands(*DEVELOPMENT_GUILD_ID, &commands)
+                .await?;
+        }
     }
 
     let task_context = context.clone();
