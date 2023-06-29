@@ -30,7 +30,7 @@ impl ConfigRemoveCategoryChannelCommand {
         match context.cache.get_guild(interaction.guild_id) {
             None => {
                 return Err(Error::Custom(
-                    "Please kick and re-invite Sakura-RS.".to_owned(),
+                    "Please kick and re-invite Sakura.".to_owned(),
                 ))
             }
             Some(cached_guild) => {

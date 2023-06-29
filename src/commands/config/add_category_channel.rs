@@ -33,7 +33,7 @@ impl ConfigAddCategoryChannelCommand {
         match context.cache.get_guild(interaction.guild_id) {
             None => {
                 return Err(Error::Custom(
-                    "Please kick and re-invite Sakura-RS.".to_owned(),
+                    "Please kick and re-invite Sakura.".to_owned(),
                 ))
             }
             Some(cached_guild) => {
@@ -51,7 +51,7 @@ impl ConfigAddCategoryChannelCommand {
 
                 if cached_guild.in_check {
                     return Err(Error::Custom(
-                        "Sakura-RS is either running an invite check or adding a category at the
+                        "Sakura is either running an invite check or adding a category at the
                 moment. Please wait until this is done before trying again."
                             .to_owned(),
                     ));
@@ -81,7 +81,7 @@ impl ConfigAddCategoryChannelCommand {
                 }
 
                 if !invisible_channels.is_empty() {
-                    return Err(Error::Custom(format!("Sakura-RS is unable to check the following channels:\n{}\nPlease give permission for Sakura-RS to read these channels and add the category again.", invisible_channels.join("\n")),));
+                    return Err(Error::Custom(format!("Sakura is unable to check the following channels:\n{}\nPlease give permission for Sakura to read these channels and add the category again.", invisible_channels.join("\n")),));
                 }
 
                 for channel_id in channel_ids_to_process {

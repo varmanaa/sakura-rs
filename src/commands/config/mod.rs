@@ -20,7 +20,7 @@ use self::{
 use crate::types::{context::Context, interaction::ApplicationCommandInteraction, Result};
 
 #[derive(CommandModel, CreateCommand)]
-#[command(desc = "Manage configuration for Sakura-RS", name = "config")]
+#[command(desc = "Manage configuration for Sakura", name = "config")]
 pub enum ConfigCommand {
     #[command(name = "add-category-channel")]
     AddCategoryChannel(ConfigAddCategoryChannelCommand),

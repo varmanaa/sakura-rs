@@ -38,14 +38,14 @@ impl CheckCommand {
             (Some(cached_guild), Some(database_guild)) => {
                 if cached_guild.in_check {
                     return Err(Error::Custom(
-                        "Sakura-RS is either running an invite check or adding a category at the
+                        "Sakura is either running an invite check or adding a category at the
                     moment. Please wait until this is done before trying again."
                             .to_owned(),
                     ));
                 }
                 if database_guild.category_channel_ids.is_empty() {
                     return Err(Error::Custom(
-                        "There are no categories for Sakura-RS to check.".to_owned(),
+                        "There are no categories for Sakura to check.".to_owned(),
                     ));
                 }
 
@@ -65,7 +65,7 @@ impl CheckCommand {
                             .cache
                             .has_minimum_channel_permissions(results_channel_id)
                         {
-                            return Err(Error::Custom(format!("Sakura-RS is unable to either view <#{results_channel_id}> or send messages in the channel.")));
+                            return Err(Error::Custom(format!("Sakura is unable to either view <#{results_channel_id}> or send messages in the channel.")));
                         }
 
                         results_channel_id
@@ -80,11 +80,7 @@ impl CheckCommand {
                     results_channel_id,
                 )
             }
-            _ => {
-                return Err(Error::Custom(
-                    "Please kick and invite Sakura-RS.".to_owned(),
-                ))
-            }
+            _ => return Err(Error::Custom("Please kick and invite Sakura.".to_owned())),
         };
         context
             .cache
@@ -92,7 +88,7 @@ impl CheckCommand {
 
         let start_time = OffsetDateTime::now_utc();
         let start_description = if interaction.channel_id.eq(&results_channel_id) {
-            "Sakura-RS is checking your invites now!".to_owned()
+            "Sakura is checking your invites now!".to_owned()
         } else {
             format!("Results will be sent in <#{results_channel_id}>!")
         };

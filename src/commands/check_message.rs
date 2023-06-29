@@ -27,7 +27,7 @@ impl CheckMessageCommand {
                 let channel =
                     match context.cache.get_channel(message.channel_id) {
                         None => return Err(Error::Custom(
-                            "Sakura-RS only looks at messages in announcement and text channels."
+                            "Sakura only looks at messages in announcement and text channels."
                                 .to_owned(),
                         )),
                         Some(channel) => channel,
@@ -83,7 +83,7 @@ impl CheckMessageCommand {
                 let embed = EmbedBuilder::new()
                     .color(0xF8F8FF)
                     .description(
-                        "Sakura-RS found some invites and will add them to the next invite check."
+                        "Sakura found some invites and will add them to the next invite check."
                             .to_owned(),
                     )
                     .build();

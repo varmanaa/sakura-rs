@@ -20,7 +20,7 @@ enum Query {
 
 #[allow(dead_code)]
 #[derive(CommandModel, CreateCommand)]
-#[command(desc = "Search information on Sakura-RS", name = "info")]
+#[command(desc = "Search information on Sakura", name = "info")]
 pub struct InfoCommand {
     #[command(desc = "The topic to search")]
     query: Query,
@@ -48,7 +48,7 @@ impl InfoCommand {
                             label: Some("Privacy Policy".to_owned()),
                             style: ButtonStyle::Link,
                             url: Some(
-                                "https://github.com/Chiitoi/Sakura-RS/blob/main/docs/PRIVACY_POLICY.md".to_owned(),
+                                "https://github.com/varmanaa/sakura-rs/blob/main/docs/PRIVACY_POLICY.md".to_owned(),
                             ),
                         }),
                         Component::Button(Button {
@@ -58,7 +58,7 @@ impl InfoCommand {
                             label: Some("Terms of Service".to_owned()),
                             style: ButtonStyle::Link,
                             url: Some(
-                                "https://github.com/Chiitoi/Sakura-RS/blob/main/docs/TERMS_OF_SERVICE.md".to_owned(),
+                                "https://github.com/varmanaa/sakura-rs/blob/main/docs/TERMS_OF_SERVICE.md".to_owned(),
                             ),
                         }),
                     ],
@@ -78,7 +78,7 @@ impl InfoCommand {
                             "Permissions",
                             "
                                 For (non-administrator) users, please enable the **Use Application Commands** permission \
-                                (as Sakura-RS only uses slash commands). For Sakura-RS, please enable the **Read Message History**, \
+                                (as Sakura only uses slash commands). For Sakura, please enable the **Read Message History**, \
                                 **Send Messages**, and **View Channels** permissions in the categories and channels \
                                 that need to be checked.
                             "
@@ -95,7 +95,7 @@ impl InfoCommand {
                             ].join("\n")
                         ).build()
                     )
-                    .title("Sakura-RS 101")
+                    .title("Sakura 101")
                     .build();
 
                 ResponsePayload {
@@ -117,7 +117,7 @@ impl InfoCommand {
                         emoji: None,
                         label: Some("Source code".to_owned()),
                         style: ButtonStyle::Link,
-                        url: Some("https://github.com/Chiitoi/Sakura-RS".to_owned()),
+                        url: Some("https://github.com/varmanaa/sakura-rs".to_owned()),
                     })],
                 })];
 

@@ -26,15 +26,11 @@ impl CountsCommand {
         interaction: &ApplicationCommandInteraction<'_>,
     ) -> Result<()> {
         match context.database.get_guild(interaction.guild_id).await {
-            None => {
-                return Err(Error::Custom(
-                    "Please kick and invite Sakura-RS.".to_owned(),
-                ))
-            }
+            None => return Err(Error::Custom("Please kick and invite Sakura.".to_owned())),
             Some(database_guild) => {
                 if database_guild.category_channel_ids.is_empty() {
                     return Err(Error::Custom(
-                        "There are no categories for Sakura-RS to check.".to_owned(),
+                        "There are no categories for Sakura to check.".to_owned(),
                     ));
                 }
 

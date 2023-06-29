@@ -13,7 +13,7 @@ use crate::{
 
 #[derive(CommandModel, CreateCommand)]
 #[command(
-    desc = "Add a channel for Sakura-RS to ignore during an invite check",
+    desc = "Add a channel for Sakura to ignore during an invite check",
     name = "add-ignored-channel"
 )]
 pub struct ConfigAddIgnoredChannelCommand {
@@ -33,7 +33,7 @@ impl ConfigAddIgnoredChannelCommand {
         match context.database.get_guild(interaction.guild_id).await {
             None => {
                 return Err(Error::Custom(
-                    "Please kick and re-invite Sakura-RS.".to_owned(),
+                    "Please kick and re-invite Sakura.".to_owned(),
                 ))
             }
             Some(database_guild) => {

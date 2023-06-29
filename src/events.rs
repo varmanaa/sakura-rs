@@ -135,11 +135,11 @@ pub async fn handle_event(
             let pre_check_response: Result<(Id<GuildMarker>, Box<CommandData>)> =
                 match (interaction_payload.guild_id, interaction_payload.data) {
                     (None, _) => {
-                        return Err(Error::Custom("Sakura-RS only works in guilds.".to_owned()))
+                        return Err(Error::Custom("Sakura only works in guilds.".to_owned()))
                     }
                     (Some(guild_id), _) if context.cache.get_guild(guild_id).is_none() => {
                         return Err(Error::Custom(
-                            "Please kick and re-invite Sakura-RS.".to_owned(),
+                            "Please kick and re-invite Sakura.".to_owned(),
                         ))
                     }
                     (Some(guild_id), Some(InteractionData::ApplicationCommand(data))) => {
