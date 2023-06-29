@@ -26,5 +26,5 @@ production = []
 
 [package]
 edition = "2021"
-name = "sakura-rs"
+name = "sakura"
 version = "0.1.0"
