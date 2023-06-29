@@ -1,11 +1,11 @@
 # Privacy Policy
 
-Effective: March 24, 2022  
-Last revised: March 23, 2022
+Effective: June 29, 2023\
+Last revised: June 28, 2023
 
 This document aims to be a transparent resource explaining Sakura's practices with respect to your data. For the purposes of this document,
 
-- "Sakura" refers to the chat bot, with the username "Sakura#0044", for the [Discord chat platform](https://discord.com/), and
+- "Sakura" refers to the chat bot, with the username "Sakura#3774", for the [Discord chat platform](https://discord.com/), and
 - "We" refers to Sakura's developer(s).
 
 ## The information we collect
@@ -27,11 +27,11 @@ We do not share your information with anyone, except to either those you give co
 
 ## Data retention
 
-We retain your information for as long as Sakura remains active in your guild or server. Invite codes (at rest) will only exist for a maximum of 30 days. You may request that we delete your information at any time. If you would like to opt-out of providing the above mentioned information, request access to your information, or request that we delete your information, please join [the support server](https://discord.gg/wtZurTFJdH) and contact Flare#2851.
+We retain your information for as long as Sakura remains active in your guild or server. Invite codes (at rest) will only exist for a maximum of 22 days. You may request that we delete your information at any time. If you would like to opt-out of providing the above mentioned information, request access to your information, or request that we delete your information, please join [the support server](https://discord.gg/wtZurTFJdH) and contact @scriptuser.
 
 ## How we protect your infomation
 
-We take appropriate security measures to ensure your information is protected from unauthorized access. All extracted invite codes are encrypted using PGP encrytion at rest.
+We take appropriate security measures to ensure your information is protected from unauthorized access.
 
 ## Changes to this Privacy Policy
 
