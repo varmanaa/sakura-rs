@@ -1,2 +1,2 @@
-# Sakura-RS
+# Sakura
 Sakura, written in Rust
