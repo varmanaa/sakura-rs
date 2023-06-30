@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration};
+use std::{cmp::max, collections::HashMap, time::Duration};
 
 use time::OffsetDateTime;
 use tokio::time::sleep;
@@ -140,7 +140,8 @@ impl CheckCommand {
             if !database_guild.category_channel_ids.contains(&parent_id) {
                 continue;
             }
-            if child_channels_in_categories.contains_key(&parent_id) {
+
+            if !child_channels_in_categories.contains_key(&parent_id) {
                 child_channels_in_categories
                     .insert(parent_id, vec![(channel_id, channel.position)]);
             }
@@ -148,6 +149,13 @@ impl CheckCommand {
             let Some(child_channels_in_category) = child_channels_in_categories.get_mut(&parent_id) else {
                 continue;
             };
+
+            if child_channels_in_category
+                .iter()
+                .any(|(child_channel_id, _)| channel_id.eq(child_channel_id))
+            {
+                continue;
+            }
 
             child_channels_in_category.push((channel_id, channel.position));
         }
@@ -213,6 +221,7 @@ impl CheckCommand {
         }
 
         let end_time = OffsetDateTime::now_utc();
+        let denominator = max(total_valid + total_invalid + total_unknown, 1);
         let end_embed = EmbedBuilder::new()
             .color(database_guild.embed_color as u32)
             .field(EmbedFieldBuilder::new(
@@ -235,18 +244,15 @@ impl CheckCommand {
                     ),
                     format!(
                         "- **{total_valid}** ({:.2}%) valid invite(s)",
-                        (total_valid * 100) as f32
-                            / (total_valid + total_invalid + total_unknown) as f32
+                        (total_valid * 100) as f32 / denominator as f32
                     ),
                     format!(
                         "- **{total_invalid}** ({:.2}%) invalid invite(s)",
-                        (total_invalid * 100) as f32
-                            / (total_valid + total_invalid + total_unknown) as f32
+                        (total_invalid * 100) as f32 / denominator as f32
                     ),
                     format!(
                         "- **{total_unknown}** ({:.2}%) unknown invite(s)",
-                        (total_unknown * 100) as f32
-                            / (total_valid + total_invalid + total_unknown) as f32
+                        (total_unknown * 100) as f32 / denominator as f32
                     ),
                 ]
                 .join("\n"),

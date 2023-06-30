@@ -41,7 +41,7 @@ impl Database {
             FROM
                 guild_invite
             GROUP BY
-                guild_invite.channel_id;      
+                guild_invite.channel_id;
         ";
         let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64)];
         let mut invite_check: HashMap<Id<ChannelMarker>, (u16, u16, u16)> = HashMap::new();
@@ -76,7 +76,7 @@ impl Database {
             WHERE
                 updated_at IS NULL
             ORDER BY
-                inserted_at
+                created_at
             LIMIT $1;
         ";
         let params: &[&(dyn ToSql + Sync)] = &[&(limit as i64)];

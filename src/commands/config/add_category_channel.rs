@@ -77,7 +77,7 @@ impl ConfigAddCategoryChannelCommand {
 
             if channel
                 .parent_id
-                .map_or(false, |parent_id| !parent_id.eq(&category_id))
+                .map_or(true, |parent_id| !parent_id.eq(&category_id))
             {
                 continue;
             }
