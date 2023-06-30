@@ -68,7 +68,8 @@ impl Cache {
         calculator
             .in_channel(kind, &permission_overwrites)
             .contains(
-                Permissions::READ_MESSAGE_HISTORY
+                Permissions::EMBED_LINKS
+                    | Permissions::READ_MESSAGE_HISTORY
                     | Permissions::SEND_MESSAGES
                     | Permissions::VIEW_CHANNEL,
             )

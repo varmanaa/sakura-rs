@@ -4,7 +4,7 @@ use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder};
 
 use crate::types::{
     context::Context,
-    interaction::{ApplicationCommandInteraction, ResponsePayload},
+    interaction::{ApplicationCommandInteraction, DeferInteractionPayload, UpdateResponsePayload},
     Result,
 };
 
@@ -31,14 +31,16 @@ impl InfoCommand {
         _context: &Context,
         interaction: &mut ApplicationCommandInteraction<'_>,
     ) -> Result<()> {
+        interaction
+            .context
+            .defer(DeferInteractionPayload {
+                ephemeral: false,
+            })
+            .await?;
+
         let options = InfoCommand::from_interaction(interaction.input_data())?;
-        let payload = match options.query {
+        let (components, embeds) = match options.query {
             Query::Documents => {
-                let embed = EmbedBuilder::new()
-                    .color(0xF8F8FF)
-                    .description("Click/tap the button that interests you!")
-                    .title("Documents")
-                    .build();
                 let components = vec![Component::ActionRow(ActionRow {
                     components: vec![
                         Component::Button(Button {
@@ -63,24 +65,25 @@ impl InfoCommand {
                         }),
                     ],
                 })];
+                let embeds = vec![EmbedBuilder::new()
+                    .color(0xF8F8FF)
+                    .description("Click/tap the button that interests you!")
+                    .title("Documents")
+                    .build()];
 
-                ResponsePayload {
-                    components: Some(components),
-                    embeds: Some(vec![embed]),
-                    ephemeral: false,
-                }
+                (components, embeds)
             }
             Query::Setup => {
-                let embed = EmbedBuilder::new()
+                let embeds = vec![EmbedBuilder::new()
                     .color(0xF8F8FF)
                     .field(
                         EmbedFieldBuilder::new(
                             "Permissions",
                             "
                                 For (non-administrator) users, please enable the **Use Application Commands** permission \
-                                (as Sakura only uses slash commands). For Sakura, please enable the **Read Message History**, \
-                                **Send Messages**, and **View Channels** permissions in the categories and channels \
-                                that need to be checked.
+                                (as Sakura only uses slash commands). For Sakura, please enable the **Embed Links**, \
+                                **Read Message History**, **Send Messages**, and **View Channels** permissions in the \
+                                categories and channels that need to be checked.
                             "
                         ).build()
                     )
@@ -96,20 +99,11 @@ impl InfoCommand {
                         ).build()
                     )
                     .title("Sakura 101")
-                    .build();
+                    .build()];
 
-                ResponsePayload {
-                    components: None,
-                    embeds: Some(vec![embed]),
-                    ephemeral: false,
-                }
+                (Vec::new(), embeds)
             }
             Query::SourceCode => {
-                let embed = EmbedBuilder::new()
-                    .color(0xF8F8FF)
-                    .description("Click/tap the button below!")
-                    .title("Source code")
-                    .build();
                 let components = vec![Component::ActionRow(ActionRow {
                     components: vec![Component::Button(Button {
                         custom_id: None,
@@ -120,16 +114,23 @@ impl InfoCommand {
                         url: Some("https://github.com/varmanaa/sakura-rs".to_owned()),
                     })],
                 })];
+                let embeds = vec![EmbedBuilder::new()
+                    .color(0xF8F8FF)
+                    .description("Click/tap the button below!")
+                    .title("Source code")
+                    .build()];
 
-                ResponsePayload {
-                    components: Some(components),
-                    embeds: Some(vec![embed]),
-                    ephemeral: false,
-                }
+                (components, embeds)
             }
         };
 
-        interaction.respond(payload).await?;
+        interaction
+            .context
+            .update_response(UpdateResponsePayload {
+                components,
+                embeds,
+            })
+            .await?;
 
         Ok(())
     }

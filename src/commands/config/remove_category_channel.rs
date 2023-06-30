@@ -5,7 +5,11 @@ use twilight_util::builder::embed::EmbedBuilder;
 use crate::{
     types::{
         context::Context,
-        interaction::{ApplicationCommandInteraction, UpdateResponsePayload},
+        interaction::{
+            ApplicationCommandInteraction,
+            DeferInteractionPayload,
+            UpdateResponsePayload,
+        },
         Result,
     },
     utility::error::Error,
@@ -27,51 +31,56 @@ impl ConfigRemoveCategoryChannelCommand {
         interaction: &mut ApplicationCommandInteraction<'_>,
         options: Self,
     ) -> Result<()> {
-        match context.cache.get_guild(interaction.guild_id) {
-            None => {
-                return Err(Error::Custom(
-                    "Please kick and re-invite Sakura.".to_owned(),
-                ))
-            }
-            Some(cached_guild) => {
-                let channel_id = options.channel;
+        interaction
+            .context
+            .defer(DeferInteractionPayload {
+                ephemeral: false,
+            })
+            .await?;
 
-                if !cached_guild
-                    .invite_check_category_ids
-                    .read()
-                    .contains(&channel_id)
-                {
-                    return Err(Error::Custom(format!(
-                        "<#{channel_id}> is not an added category."
-                    )));
-                }
-
-                let updated_category_channel_ids = context
-                    .database
-                    .remove_category_channel(interaction.guild_id, channel_id)
-                    .await?;
-
-                context.cache.update_guild(
-                    interaction.guild_id,
-                    None,
-                    Some(updated_category_channel_ids),
-                    None,
-                );
-
-                let embed = EmbedBuilder::new()
-                    .color(0xF8F8FF)
-                    .description(format!(
-                        "<#{channel_id}> will no longer be checked during invite checks."
-                    ))
-                    .build();
-
-                interaction
-                    .update_response(UpdateResponsePayload {
-                        embeds: Some(&[embed]),
-                    })
-                    .await?;
-            }
+        let Some(cached_guild) = context.cache.get_guild(interaction.guild_id) else {
+            return Err(Error::Custom(
+                "Please kick and re-invite Sakura.".to_owned(),
+            ))
         };
+        let channel_id = options.channel;
+
+        if !cached_guild
+            .invite_check_category_ids
+            .read()
+            .contains(&channel_id)
+        {
+            return Err(Error::Custom(format!(
+                "<#{channel_id}> is not an added category."
+            )));
+        }
+
+        let updated_category_channel_ids = context
+            .database
+            .remove_category_channel(interaction.guild_id, channel_id)
+            .await?;
+
+        context.cache.update_guild(
+            interaction.guild_id,
+            None,
+            Some(updated_category_channel_ids),
+            None,
+        );
+
+        let embed = EmbedBuilder::new()
+            .color(0xF8F8FF)
+            .description(format!(
+                "<#{channel_id}> will no longer be checked during invite checks."
+            ))
+            .build();
+
+        interaction
+            .context
+            .update_response(UpdateResponsePayload {
+                embeds: vec![embed],
+                ..Default::default()
+            })
+            .await?;
 
         Ok(())
     }

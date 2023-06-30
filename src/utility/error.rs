@@ -21,6 +21,8 @@ pub enum Error {
     JobScheduler(#[from] tokio_cron_scheduler::JobSchedulerError),
     #[error("Unable to validate message")]
     MessageValidation(#[from] twilight_validate::message::MessageValidationError),
+    #[error("Unable to parse integer")]
+    ParseInt(#[from] std::num::ParseIntError),
     #[error("Unable to retrieve object from pool")]
     Pool(#[from] deadpool_postgres::PoolError),
     #[error("PostgreSQL error")]

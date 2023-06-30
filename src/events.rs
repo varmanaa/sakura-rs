@@ -1,12 +1,10 @@
 use std::{collections::HashSet, mem::take, sync::Arc};
 
 use time::OffsetDateTime;
-use twilight_gateway::{Event, Latency};
+use twilight_gateway::Event;
 use twilight_model::{
-    application::interaction::{application_command::CommandData, InteractionData},
-    channel::message::MessageFlags,
-    http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType},
-    id::{marker::GuildMarker, Id},
+    application::interaction::{Interaction, InteractionData},
+    channel::ChannelType,
 };
 use twilight_util::builder::embed::EmbedBuilder;
 
@@ -17,25 +15,25 @@ use crate::{
         config::ConfigCommand,
         counts::CountsCommand,
         info::InfoCommand,
-        latency::LatencyCommand,
     },
     types::{
         context::Context,
         database::{GuildCreatePayload, GuildDeletePayload},
+
         interaction::{
             ApplicationCommandInteraction,
-            DeferInteractionPayload,
+            ApplicationCommandInteractionContext,
+            ResponsePayload,
             UpdateResponsePayload,
         },
         Result,
     },
-    utility::{error::Error, message::get_invite_codes},
+    utility::message::get_invite_codes,
 };
 
 pub async fn handle_event(
-    latency: Latency,
-    event: Event,
     context: Arc<Context>,
+    event: Event,
 ) -> Result<()> {
     match event {
         Event::ChannelCreate(payload) => context.cache.insert_channel(payload.0),
@@ -131,101 +129,105 @@ pub async fn handle_event(
                 .update_guild(payload.id, None, None, Some(payload.name.clone()))
         }
         Event::InteractionCreate(payload) => {
-            let interaction_payload = payload.0;
-            let pre_check_response: Result<(Id<GuildMarker>, Box<CommandData>)> =
-                match (interaction_payload.guild_id, interaction_payload.data) {
-                    (None, _) => {
-                        return Err(Error::Custom("Sakura only works in guilds.".to_owned()))
-                    }
-                    (Some(guild_id), _) if context.cache.get_guild(guild_id).is_none() => {
-                        return Err(Error::Custom(
-                            "Please kick and re-invite Sakura.".to_owned(),
-                        ))
-                    }
-                    (Some(guild_id), Some(InteractionData::ApplicationCommand(data))) => {
-                        let commands =
-                            vec!["Check message", "check", "config", "counts", "info", "latency"];
-
-                        if !commands.contains(&data.name.as_str()) {
-                            return Err(Error::Custom(format!(
-                                "I have received an unknown command with the name \"{}\".",
-                                &data.name
-                            )));
-                        } else {
-                            Ok((guild_id, data))
-                        }
-                    }
-                    _ => {
-                        return Err(Error::Custom(
-                            "I have received an unknown interaction.".to_owned(),
-                        ))
-                    }
-                };
-            let (guild_id, data) = match pre_check_response {
-                Ok((guild_id, data)) => (guild_id, data),
-                Err(error) => {
-                    let embed = EmbedBuilder::new()
-                        .color(0xF8F8FF)
-                        .description(error.to_string())
-                        .build();
-
-                    context
-                        .interaction_client()
-                        .create_response(
-                            interaction_payload.id,
-                            &interaction_payload.token,
-                            &InteractionResponse {
-                                data: Some(InteractionResponseData {
-                                    components: None,
-                                    embeds: Some(vec![embed]),
-                                    flags: Some(MessageFlags::EPHEMERAL),
-                                    ..Default::default()
-                                }),
-                                kind: InteractionResponseType::ChannelMessageWithSource,
-                            },
-                        )
-                        .await?;
-
-                    return Ok(());
-                }
-            };
-            let mut interaction = ApplicationCommandInteraction {
-                channel_id: interaction_payload.channel.unwrap().id,
+            let Interaction {
+                channel,
                 data,
                 guild_id,
-                id: interaction_payload.id,
+                id,
+                token,
+                ..
+            } = payload.0;
+
+            let interaction_context = ApplicationCommandInteractionContext {
+                id,
                 interaction_client: context.interaction_client(),
-                latency,
-                token: interaction_payload.token,
+                token,
+            };
+            let embed_builder = EmbedBuilder::new().color(0xF8F8FF);
+            let channel_id = match channel {
+                Some(channel) if vec![ChannelType::GuildAnnouncement, ChannelType::GuildText].contains(&channel.kind) => channel.id,
+                _ => return interaction_context.respond(ResponsePayload {
+                    embeds: vec![embed_builder.description("Sakura's commands may only be run in either announcement or text channels.".to_owned()).build()],
+                    ephemeral: true,
+                    ..Default::default()
+                })
+                .await
             };
 
-            interaction
-                .defer(DeferInteractionPayload {
-                    ephemeral: false,
+            if !context.cache.has_minimum_channel_permissions(channel_id) {
+                return interaction_context.respond(ResponsePayload {
+                    embeds: vec![embed_builder.description("Sakura requires the **Embed Links**, **Read Message History**, **Send Messages**, and **View Channels** permissions in this channel.".to_owned()).build()],
+                    ephemeral: true,
+                    ..Default::default()
                 })
-                .await?;
+                .await;
+            }
 
+            let Some(guild_id) = guild_id else {
+                return interaction_context.respond(ResponsePayload {
+                    embeds: vec![embed_builder.description("Sakura only works in guilds.".to_owned()).build()],
+                    ephemeral: true,
+                    ..Default::default()
+                })
+                .await
+            };
+
+            if context.cache.get_guild(guild_id).is_none() {
+                return interaction_context
+                    .respond(ResponsePayload {
+                        embeds: vec![embed_builder
+                            .description("Please kick and re-invite Sakura.".to_owned())
+                            .build()],
+                        ephemeral: true,
+                        ..Default::default()
+                    })
+                    .await;
+            }
+
+            let Some(InteractionData::ApplicationCommand(data)) = data else {
+                return interaction_context.respond(ResponsePayload {
+                    embeds: vec![embed_builder.description("I have received an unknown interaction.".to_owned()).build()],
+                    ephemeral: true,
+                    ..Default::default()
+                })
+                .await
+            };
+            let mut interaction = ApplicationCommandInteraction {
+                channel_id,
+                context: interaction_context,
+                data,
+                guild_id,
+            };
             let command_name = take(&mut interaction.data.name);
-
-            if let Err(error) = match command_name.as_str() {
+            let command_result = match command_name.as_str() {
                 "Check message" => CheckMessageCommand::run(&context, &mut interaction).await,
                 "check" => CheckCommand::run(&context, &interaction).await,
                 "config" => ConfigCommand::run(&context, &mut interaction).await,
                 "counts" => CountsCommand::run(&context, &interaction).await,
                 "info" => InfoCommand::run(&context, &mut interaction).await,
-                "latency" => LatencyCommand::run(&context, &interaction).await,
-                _ => Ok(()),
-            } {
-                let embed = EmbedBuilder::new()
-                    .color(0xF8F8FF)
-                    .description(error.to_string())
-                    .build();
+                _ => {
+                    return interaction
+                        .context
+                        .update_response(UpdateResponsePayload {
+                            embeds: vec![embed_builder
+                                .description(
+                                    "I have received an unknown command with the name \"{}\".",
+                                )
+                                .build()],
+                            ..Default::default()
+                        })
+                        .await
+                }
+            };
 
-                interaction
+            if let Err(error) = command_result {
+                return interaction
+                    .context
                     .update_response(UpdateResponsePayload {
-                        embeds: Some(&[embed]),
+                        embeds: vec![embed_builder.description(error.to_string()).build()],
+                        ..Default::default()
                     })
-                    .await?;
+                    .await;
             }
         }
         Event::MemberUpdate(payload) => {

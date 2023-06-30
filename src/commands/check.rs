@@ -10,7 +10,11 @@ use crate::{
     types::{
         context::Context,
         database::InviteCheckCreatePayload,
-        interaction::{ApplicationCommandInteraction, UpdateResponsePayload},
+        interaction::{
+            ApplicationCommandInteraction,
+            DeferInteractionPayload,
+            UpdateResponsePayload,
+        },
         Result,
     },
     utility::{decimal::add_commas, error::Error, time::humanize},
@@ -25,85 +29,91 @@ impl CheckCommand {
         context: &Context,
         interaction: &ApplicationCommandInteraction<'_>,
     ) -> Result<()> {
-        let (
-            guild_channel_ids,
-            category_channel_ids,
-            embed_color,
-            ignored_channel_ids,
-            results_channel_id,
-        ) = match (
+        interaction
+            .context
+            .defer(DeferInteractionPayload {
+                ephemeral: false,
+            })
+            .await?;
+
+        let (Some(cached_guild), Some(database_guild)) = (
             context.cache.get_guild(interaction.guild_id),
             context.database.get_guild(interaction.guild_id).await,
-        ) {
-            (Some(cached_guild), Some(database_guild)) => {
-                if cached_guild.in_check {
-                    return Err(Error::Custom(
-                        "Sakura is either running an invite check or adding a category at the
-                    moment. Please wait until this is done before trying again."
-                            .to_owned(),
-                    ));
-                }
-                if database_guild.category_channel_ids.is_empty() {
-                    return Err(Error::Custom(
-                        "There are no categories for Sakura to check.".to_owned(),
-                    ));
-                }
-
-                let results_channel_id = match database_guild.results_channel_id {
-                    None => {
-                        return Err(Error::Custom(
-                            "You have not set a \"results channel\".".to_owned(),
-                        ))
-                    }
-                    Some(results_channel_id) => {
-                        if context.cache.get_channel(results_channel_id).is_none() {
-                            return Err(Error::Custom(
-                                "Please set another \"results channel\".".to_owned(),
-                            ));
-                        }
-                        if !context
-                            .cache
-                            .has_minimum_channel_permissions(results_channel_id)
-                        {
-                            return Err(Error::Custom(format!("Sakura is unable to either view <#{results_channel_id}> or send messages in the channel.")));
-                        }
-
-                        results_channel_id
-                    }
-                };
-
-                (
-                    cached_guild.channel_ids.read().clone(),
-                    database_guild.category_channel_ids,
-                    database_guild.embed_color as u32,
-                    database_guild.ignored_channel_ids,
-                    results_channel_id,
-                )
-            }
-            _ => return Err(Error::Custom("Please kick and invite Sakura.".to_owned())),
+        ) else {
+            return Err(Error::Custom("Please kick and invite Sakura.".to_owned()))
         };
+
+        if cached_guild.in_check {
+            return Err(Error::Custom(
+                "Sakura is either running an invite check or adding a category at the
+            moment. Please wait until this is done before trying again."
+                    .to_owned(),
+            ));
+        }
+
+        if database_guild.category_channel_ids.is_empty() {
+            return Err(Error::Custom(
+                "There are no categories for Sakura to check.".to_owned(),
+            ));
+        }
+
+        let Some(results_channel_id) = database_guild.results_channel_id else {
+            return Err(Error::Custom(
+                "You have not set a \"results channel\".".to_owned(),
+            ))
+        };
+
+        if context.cache.get_channel(results_channel_id).is_none() {
+            return Err(Error::Custom(
+                "Please set another \"results channel\".".to_owned(),
+            ));
+        }
+        if !context
+            .cache
+            .has_minimum_channel_permissions(results_channel_id)
+        {
+            return Err(Error::Custom(format!("Sakura is unable to either view <#{results_channel_id}> or send messages in the channel.")));
+        }
+
         context
             .cache
             .update_guild(interaction.guild_id, Some(true), None, None);
 
         let start_time = OffsetDateTime::now_utc();
-        let start_description = if interaction.channel_id.eq(&results_channel_id) {
-            "Sakura is checking your invites now!".to_owned()
-        } else {
-            format!("Results will be sent in <#{results_channel_id}>!")
-        };
         let start_embed = EmbedBuilder::new()
-            .color(embed_color)
-            .description(start_description)
+            .color(database_guild.embed_color as u32)
+            .description("Sakura is checking your invites now!".to_owned())
             .build();
 
-        interaction
-            .update_response(UpdateResponsePayload {
-                embeds: Some(&[start_embed]),
-            })
-            .await?;
+        if interaction.channel_id.eq(&results_channel_id) {
+            interaction
+                .context
+                .update_response(UpdateResponsePayload {
+                    embeds: vec![start_embed],
+                    ..Default::default()
+                })
+                .await?;
+        } else {
+            interaction
+                .context
+                .update_response(UpdateResponsePayload {
+                    embeds: vec![EmbedBuilder::new()
+                        .color(database_guild.embed_color as u32)
+                        .description(format!("Results will be sent in <#{results_channel_id}>!"))
+                        .build()],
+                    ..Default::default()
+                })
+                .await?;
 
-        let mut sorted_category_channels = category_channel_ids
+            context
+                .http
+                .create_message(results_channel_id)
+                .embeds(&[start_embed])?
+                .await?;
+        }
+
+        let mut sorted_category_channels = database_guild
+            .category_channel_ids
             .iter()
             .filter_map(|channel_id| {
                 context.cache.get_channel(*channel_id).and_then(|channel| {
@@ -119,25 +129,27 @@ impl CheckCommand {
             Vec<(Id<ChannelMarker>, i32)>,
         > = HashMap::new();
 
-        for channel_id in guild_channel_ids.into_iter() {
-            let channel = match context.cache.get_channel(channel_id) {
-                Some(channel) => channel,
-                None => continue,
+        for channel_id in cached_guild.channel_ids.read().clone().into_iter() {
+            let Some(channel) = context.cache.get_channel(channel_id) else {
+                continue
             };
-            let parent_id = match channel.parent_id {
-                Some(parent_id) if category_channel_ids.contains(&parent_id) => parent_id,
-                _ => continue,
+            let Some(parent_id) = channel.parent_id else {
+                continue;
             };
 
-            match child_channels_in_categories.get_mut(&parent_id) {
-                None => {
-                    child_channels_in_categories
-                        .insert(parent_id, vec![(channel_id, channel.position)]);
-                }
-                Some(child_channels_in_category) => {
-                    child_channels_in_category.push((channel_id, channel.position));
-                }
+            if !database_guild.category_channel_ids.contains(&parent_id) {
+                continue;
             }
+            if child_channels_in_categories.contains_key(&parent_id) {
+                child_channels_in_categories
+                    .insert(parent_id, vec![(channel_id, channel.position)]);
+            }
+
+            let Some(child_channels_in_category) = child_channels_in_categories.get_mut(&parent_id) else {
+                continue;
+            };
+
+            child_channels_in_category.push((channel_id, channel.position));
         }
 
         let guild_invite_counts = context
@@ -159,10 +171,9 @@ impl CheckCommand {
                     child_channels
                         .into_iter()
                         .map(|(child_channel_id, _)| {
-                            if ignored_channel_ids.contains(child_channel_id) {
+                            if database_guild.ignored_channel_ids.contains(child_channel_id) {
                                 format!("⚪ <#{child_channel_id}> - **IGNORED**")
-                            } else if let Some((valid, invalid, unknown)) =
-                            guild_invite_counts.get(&child_channel_id).cloned() {
+                            } else if let Some((valid, invalid, unknown)) = guild_invite_counts.get(&child_channel_id).cloned() {
                                 let total = valid + invalid + unknown;
 
                                 total_valid += valid;
@@ -187,7 +198,7 @@ impl CheckCommand {
                 }
             };
             let embed = EmbedBuilder::new()
-                .color(embed_color)
+                .color(database_guild.embed_color as u32)
                 .description(description)
                 .title(format!("The \"{category_name}\" category"))
                 .build();
@@ -203,7 +214,7 @@ impl CheckCommand {
 
         let end_time = OffsetDateTime::now_utc();
         let end_embed = EmbedBuilder::new()
-            .color(embed_color)
+            .color(database_guild.embed_color as u32)
             .field(EmbedFieldBuilder::new(
                 "Elapsed time",
                 humanize(

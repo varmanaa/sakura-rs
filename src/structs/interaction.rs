@@ -2,7 +2,6 @@ use std::{borrow::Cow, mem::take};
 
 use twilight_interactions::command::CommandInputData;
 use twilight_model::{
-    application::command::CommandType,
     channel::{message::MessageFlags, Message},
     http::interaction::{InteractionResponse, InteractionResponseData, InteractionResponseType},
 };
@@ -10,6 +9,7 @@ use twilight_model::{
 use crate::types::{
     interaction::{
         ApplicationCommandInteraction,
+        ApplicationCommandInteractionContext,
         DeferInteractionPayload,
         ResponsePayload,
         UpdateResponsePayload,
@@ -18,6 +18,21 @@ use crate::types::{
 };
 
 impl ApplicationCommandInteraction<'_> {
+    pub fn input_data(&mut self) -> CommandInputData {
+        CommandInputData {
+            options: take(&mut self.data.options),
+            resolved: self.data.resolved.take().map(Cow::Owned),
+        }
+    }
+
+    pub fn message(&mut self) -> Option<Message> {
+        self.input_data()
+            .resolved
+            .map_or(None, |resolved| resolved.messages.values().next().cloned())
+    }
+}
+
+impl ApplicationCommandInteractionContext<'_> {
     pub async fn defer(
         &self,
         payload: DeferInteractionPayload,
@@ -37,33 +52,24 @@ impl ApplicationCommandInteraction<'_> {
         Ok(())
     }
 
-    pub fn input_data(&mut self) -> CommandInputData {
-        CommandInputData {
-            options: take(&mut self.data.options),
-            resolved: self.data.resolved.take().map(Cow::Owned),
-        }
-    }
-
-    pub fn message(&mut self) -> Option<Message> {
-        match self.data.kind {
-            CommandType::Message => {
-                match self.input_data().resolved {
-                    Some(resolved) => resolved.messages.values().next().cloned(),
-                    _ => None,
-                }
-            }
-            _ => None,
-        }
-    }
-
     pub async fn respond(
         &self,
         payload: ResponsePayload,
     ) -> Result<()> {
+        let components = if payload.components.is_empty() {
+            None
+        } else {
+            Some(payload.components)
+        };
+        let embeds = if payload.embeds.is_empty() {
+            None
+        } else {
+            Some(payload.embeds)
+        };
         let response = InteractionResponse {
             data: Some(InteractionResponseData {
-                components: payload.components,
-                embeds: payload.embeds,
+                components,
+                embeds,
                 flags: payload.ephemeral.then(|| MessageFlags::EPHEMERAL),
                 ..Default::default()
             }),
@@ -77,24 +83,24 @@ impl ApplicationCommandInteraction<'_> {
         Ok(())
     }
 
-    pub async fn response(&self) -> Result<Message> {
-        let message = self
-            .interaction_client
-            .response(&self.token)
-            .await?
-            .model()
-            .await?;
-
-        Ok(message)
-    }
-
     pub async fn update_response(
         &self,
-        payload: UpdateResponsePayload<'_>,
+        payload: UpdateResponsePayload,
     ) -> Result<()> {
+        let components = if payload.components.is_empty() {
+            None
+        } else {
+            Some(payload.components.as_slice())
+        };
+        let embeds = if payload.embeds.is_empty() {
+            None
+        } else {
+            Some(payload.embeds.as_slice())
+        };
         self.interaction_client
             .update_response(&self.token)
-            .embeds(payload.embeds)?
+            .components(components)?
+            .embeds(embeds)?
             .await?;
 
         Ok(())
