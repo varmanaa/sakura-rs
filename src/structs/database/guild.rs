@@ -43,7 +43,9 @@ impl Database {
             UPDATE
                 public.guild
             SET
-                category_channel_ids = ARRAY(SELECT DISTINCT UNNEST(ARRAY_APPEND(category_channel_ids, $2)))
+                category_channel_ids = ARRAY(
+                    SELECT DISTINCT UNNEST(ARRAY_APPEND(category_channel_ids, $2))
+                )
             WHERE
                 guild_id = $1
             RETURNING
@@ -116,7 +118,9 @@ impl Database {
             UPDATE
                 public.guild
             SET
-                ignored_channel_ids = ARRAY(SELECT DISTINCT UNNEST(ARRAY_APPEND(ignored_channel_ids, $2)))
+                ignored_channel_ids = ARRAY(
+                    SELECT DISTINCT UNNEST(ARRAY_APPEND(ignored_channel_ids, $2))
+                )
             WHERE
                 guild_id = $1;
         ";
@@ -150,17 +154,26 @@ impl Database {
         Ok(())
     }
 
-    pub async fn remove_category_channel(
+    pub async fn remove_channel(
         &self,
         guild_id: Id<GuildMarker>,
         channel_id: Id<ChannelMarker>,
     ) -> Result<HashSet<Id<ChannelMarker>>> {
-        let client = self.pool.get().await.unwrap();
+        let client = self.pool.get().await?;
         let statement = "
             UPDATE
                 public.guild
             SET
-                category_channel_ids = ARRAY(SELECT DISTINCT UNNEST(ARRAY_REMOVE(category_channel_ids, $2)))
+                category_channel_ids = ARRAY(
+                    SELECT DISTINCT UNNEST(ARRAY_REMOVE(category_channel_ids, $2))
+                ),
+                ignored_channel_ids = ARRAY(
+                        SELECT DISTINCT UNNEST(ARRAY_REMOVE(ignored_channel_ids, $2))
+                ),
+                results_channel_id = CASE
+                    WHEN results_channel_id = $2 THEN NULL
+                    ELSE results_channel_id
+                END
             WHERE
                 guild_id = $1
             RETURNING
@@ -194,52 +207,6 @@ impl Database {
                 guild_id = $1;
         ";
         let params: &[&(dyn ToSql + Sync)] = &[&(guild_id.get() as i64)];
-
-        client.execute(statement, params).await?;
-
-        Ok(())
-    }
-
-    pub async fn remove_ignored_channel(
-        &self,
-        guild_id: Id<GuildMarker>,
-        channel_id: Id<ChannelMarker>,
-    ) -> Result<()> {
-        let client = self.pool.get().await.unwrap();
-        let statement = "
-            UPDATE
-                public.guild
-            SET
-                ignored_channel_ids = ARRAY(SELECT DISTINCT UNNEST(ARRAY_REMOVE(ignored_channel_ids, $2)))
-            WHERE
-                guild_id = $1;
-        ";
-        let params: &[&(dyn ToSql + Sync)] =
-            &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
-
-        client.execute(statement, params).await?;
-
-        Ok(())
-    }
-
-    pub async fn remove_results_channel(
-        &self,
-        guild_id: Id<GuildMarker>,
-        channel_id: Id<ChannelMarker>,
-    ) -> Result<()> {
-        let client = self.pool.get().await.unwrap();
-        let statement = "
-            UPDATE
-                public.guild
-            SET
-                results_channel_id = NULL
-            WHERE
-                guild_id = $1
-                AND results_channel_id = $2;
-        ";
-
-        let params: &[&(dyn ToSql + Sync)] =
-            &[&(guild_id.get() as i64), &(channel_id.get() as i64)];
 
         client.execute(statement, params).await?;
 

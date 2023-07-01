@@ -10,7 +10,7 @@ use crate::{
             DeferInteractionPayload,
             UpdateResponsePayload,
         },
-        Result,
+        Result, cache::GuildUpdate,
     },
     utility::error::Error,
 };
@@ -54,10 +54,19 @@ impl ConfigRemoveIgnoredChannelCommand {
             )));
         }
 
-        context
+        let updated_category_channel_ids = context
             .database
-            .remove_ignored_channel(interaction.guild_id, channel_id)
+            .remove_channel(interaction.guild_id, channel_id)
             .await?;
+
+        context.cache.update_guild(
+            interaction.guild_id,
+            GuildUpdate {
+                in_check: Some(false),
+                invite_check_category_ids: Some(updated_category_channel_ids),
+                ..Default::default()
+            },
+        );
 
         let embed = EmbedBuilder::new()
             .color(0xF8F8FF)

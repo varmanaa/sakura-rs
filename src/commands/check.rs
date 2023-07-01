@@ -8,6 +8,7 @@ use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder};
 
 use crate::{
     types::{
+        cache::GuildUpdate,
         context::Context,
         database::InviteCheckCreatePayload,
         interaction::{
@@ -75,9 +76,13 @@ impl CheckCommand {
             return Err(Error::Custom(format!("Sakura is unable to either view <#{results_channel_id}> or send messages in the channel.")));
         }
 
-        context
-            .cache
-            .update_guild(interaction.guild_id, Some(true), None, None);
+        context.cache.update_guild(
+            interaction.guild_id,
+            GuildUpdate {
+                in_check: Some(true),
+                ..Default::default()
+            },
+        );
 
         let start_time = OffsetDateTime::now_utc();
         let start_embed = EmbedBuilder::new()
@@ -122,7 +127,15 @@ impl CheckCommand {
             })
             .collect::<Vec<(Id<ChannelMarker>, String, i32)>>();
 
-        sorted_category_channels.sort_unstable_by(|a, b| a.2.cmp(&b.2));
+        sorted_category_channels.sort_unstable_by(|a, b| {
+            let sort_ordering = a.2.cmp(&b.2);
+
+            if !sort_ordering.is_eq() {
+                a.1.cmp(&b.1)
+            } else {
+                sort_ordering
+            }
+        });
 
         let mut child_channels_in_categories: HashMap<
             Id<ChannelMarker>,
@@ -236,11 +249,11 @@ impl CheckCommand {
                 vec![
                     format!(
                         "- **{}** channel(s) checked",
-                        add_commas(total_channels as u128)
+                        add_commas(total_channels.to_string())
                     ),
                     format!(
                         "- **{}** invite(s) checked",
-                        add_commas((total_valid + total_invalid + total_unknown) as u128)
+                        add_commas((total_valid + total_invalid + total_unknown).to_string())
                     ),
                     format!(
                         "- **{total_valid}** ({:.2}%) valid invite(s)",
@@ -265,9 +278,13 @@ impl CheckCommand {
             .create_message(results_channel_id)
             .embeds(&[end_embed])?
             .await?;
-        context
-            .cache
-            .update_guild(interaction.guild_id, Some(false), None, None);
+        context.cache.update_guild(
+            interaction.guild_id,
+            GuildUpdate {
+                in_check: Some(false),
+                ..Default::default()
+            },
+        );
         context
             .database
             .insert_invite_check_create_event(InviteCheckCreatePayload {

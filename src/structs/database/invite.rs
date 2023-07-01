@@ -149,20 +149,17 @@ impl Database {
         Ok(())
     }
 
-    pub async fn remove_old_invites(
-        &self,
-        age: u8,
-    ) -> Result<()> {
+    pub async fn remove_old_invites(&self) -> Result<()> {
         let client = self.pool.get().await?;
 
         let statement = "
             DELETE FROM
                 public.invite
             WHERE
-                created_at >= CURRENT_TIMESTAMP - INTERVAL '$1 days';
+                created_at >= CURRENT_TIMESTAMP - INTERVAL '22 days';
         ";
 
-        let params: &[&(dyn ToSql + Sync)] = &[&(age as i8)];
+        let params: &[&(dyn ToSql + Sync)] = &[];
 
         client.execute(statement, params).await?;
 

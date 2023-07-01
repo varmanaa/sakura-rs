@@ -29,10 +29,9 @@ impl Database {
             EXCEPTION
                 WHEN duplicate_object THEN NULL;
             END $$;
-            
+
             -- event_log table
             CREATE TABLE IF NOT EXISTS public.event_log (
-                id BIGSERIAL PRIMARY KEY,
                 event_type event NOT NULL,
                 payload JSONB NOT NULL DEFAULT '{}'::JSONB,
                 created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP

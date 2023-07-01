@@ -9,13 +9,14 @@ use std::{env, sync::Arc};
 
 use dotenv::dotenv;
 use futures::StreamExt;
+use time::OffsetDateTime;
 use twilight_gateway::{
     stream::{self, ShardEventStream},
     Config,
     Intents,
 };
 use twilight_http::Client;
-use utility::constants::DEVELOPMENT_GUILD_ID;
+use types::context::Shard;
 
 #[tokio::main]
 async fn main() -> types::Result<()> {
@@ -45,35 +46,10 @@ async fn main() -> types::Result<()> {
     ));
     let commands = commands::get_commands();
 
-    #[cfg(feature = "production")]
-    {
-        context
-            .interaction_client()
-            .set_global_commands(&commands)
-            .await?;
-
-        if context.cache.get_guild(*DEVELOPMENT_GUILD_ID).is_some() {
-            context
-                .interaction_client()
-                .set_guild_commands(*DEVELOPMENT_GUILD_ID, &[])
-                .await?;
-        }
-    }
-
-    #[cfg(not(feature = "production"))]
-    {
-        context
-            .interaction_client()
-            .set_global_commands(&[])
-            .await?;
-
-        if context.cache.get_guild(*DEVELOPMENT_GUILD_ID).is_some() {
-            context
-                .interaction_client()
-                .set_guild_commands(*DEVELOPMENT_GUILD_ID, &commands)
-                .await?;
-        }
-    }
+    context
+        .interaction_client()
+        .set_global_commands(&commands)
+        .await?;
 
     let task_context = context.clone();
 
@@ -82,21 +58,42 @@ async fn main() -> types::Result<()> {
     });
 
     loop {
-        let (_shard, event) = match stream.next().await {
-            Some((shard, Ok(event))) => (shard, event),
-            Some((_shard, Err(source))) => {
+        let (shard_ref, event) = match stream.next().await {
+            None => break,
+            Some((_, Err(source))) => {
                 if source.is_fatal() {
                     break;
                 }
 
                 continue;
             }
-            None => break,
+            Some((shard_ref, Ok(event))) => (shard_ref, event),
         };
+        let shard_id = shard_ref.id().number();
+        let ready_at = if shard_ref.status().is_connected() {
+            match context.shards.read().get(&shard_id) {
+                Some(shard) if shard.ready_at.is_some() => shard.ready_at,
+                _ => Some(OffsetDateTime::now_utc()),
+            }
+        } else {
+            None
+        };
+
+        context.shards.write().insert(
+            shard_id,
+            Arc::new(Shard {
+                latency: shard_ref.latency().clone(),
+                ready_at,
+                shard_id,
+            }),
+        );
+
         let event_context = context.clone();
 
         tokio::spawn(async move {
-            events::handle_event(event_context, event).await.unwrap();
+            events::handle_event(event_context, shard_id, event)
+                .await
+                .unwrap();
         });
     }
 

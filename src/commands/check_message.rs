@@ -4,7 +4,11 @@ use twilight_util::builder::{command::CommandBuilder, embed::EmbedBuilder};
 use crate::{
     types::{
         context::Context,
-        interaction::{ApplicationCommandInteraction, UpdateResponsePayload},
+        interaction::{
+            ApplicationCommandInteraction,
+            DeferInteractionPayload,
+            UpdateResponsePayload,
+        },
         Result,
     },
     utility::{error::Error, message::get_invite_codes},
@@ -21,6 +25,13 @@ impl CheckMessageCommand {
         context: &Context,
         interaction: &mut ApplicationCommandInteraction<'_>,
     ) -> Result<()> {
+        interaction
+            .context
+            .defer(DeferInteractionPayload {
+                ephemeral: false,
+            })
+            .await?;
+
         let Some(message) = interaction.message() else {
             return Err(Error::Custom("I could not find a message.".to_owned()))
         };

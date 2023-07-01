@@ -5,7 +5,7 @@ use tokio::time::sleep;
 use tokio_cron_scheduler::{Job, JobScheduler};
 
 use crate::{
-    types::{context::Context, Result},
+    types::{cache::GuildUpdate, context::Context, Result},
     utility::message::get_invite_codes,
 };
 
@@ -120,33 +120,39 @@ async fn handle_unchecked_invites_task(context: Arc<Context>) -> Result<()> {
 }
 
 async fn handle_recycle_invites_task(context: Arc<Context>) -> Result<()> {
-    context.database.remove_old_invites(22).await?;
+    context.database.remove_old_invites().await?;
 
     let old_ids = context.database.remove_old_messages(22).await?;
 
     for (guild_id, channel_ids) in old_ids.into_iter() {
-        context.cache.update_guild(guild_id, Some(true), None, None);
-
-        let cached_guild = match context.cache.get_guild(guild_id) {
-            Some(guild) => guild,
-            None => return Ok(()),
+        let Some(cached_guild) = context.cache.get_guild(guild_id) else {
+            continue
         };
         let cached_guild_invite_check_category_ids =
             cached_guild.invite_check_category_ids.read().clone();
 
+        context.cache.update_guild(
+            guild_id,
+            GuildUpdate {
+                in_check: Some(true),
+                ..Default::default()
+            },
+        );
+
         for channel_id in channel_ids {
             sleep(Duration::from_millis(500)).await;
 
-            let channel = match context.cache.get_channel(channel_id) {
-                Some(channel) => channel,
-                None => continue,
+            let Some(channel) = context.cache.get_channel(channel_id) else {
+                continue
             };
-            let parent_id = match channel.parent_id {
-                Some(parent_id) if cached_guild_invite_check_category_ids.contains(&parent_id) => {
-                    parent_id
-                }
-                _ => continue,
+            let Some(parent_id) = channel.parent_id else {
+                continue
             };
+
+            if !cached_guild_invite_check_category_ids.contains(&parent_id) {
+                continue;
+            }
+
             let messages = context
                 .http
                 .channel_messages(channel_id)
@@ -172,9 +178,13 @@ async fn handle_recycle_invites_task(context: Arc<Context>) -> Result<()> {
             }
         }
 
-        context
-            .cache
-            .update_guild(guild_id, Some(false), None, None);
+        context.cache.update_guild(
+            guild_id,
+            GuildUpdate {
+                in_check: Some(false),
+                ..Default::default()
+            },
+        );
     }
 
     Ok(())

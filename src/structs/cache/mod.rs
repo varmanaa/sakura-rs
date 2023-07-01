@@ -48,6 +48,7 @@ impl Cache {
         };
         let current_user_roles_and_permissions = current_user
             .role_ids
+            .read()
             .clone()
             .into_iter()
             .map(|role_id| {

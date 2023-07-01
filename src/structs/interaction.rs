@@ -83,6 +83,17 @@ impl ApplicationCommandInteractionContext<'_> {
         Ok(())
     }
 
+    pub async fn response(&self) -> Result<Message> {
+        let message = self
+            .interaction_client
+            .response(&self.token)
+            .await?
+            .model()
+            .await?;
+
+        Ok(message)
+    }
+
     pub async fn update_response(
         &self,
         payload: UpdateResponsePayload,

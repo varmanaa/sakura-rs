@@ -10,7 +10,11 @@ use twilight_util::builder::embed::{EmbedBuilder, EmbedFieldBuilder};
 use crate::{
     types::{
         context::Context,
-        interaction::{ApplicationCommandInteraction, UpdateResponsePayload},
+        interaction::{
+            ApplicationCommandInteraction,
+            DeferInteractionPayload,
+            UpdateResponsePayload,
+        },
         Result,
     },
     utility::error::Error,
@@ -25,6 +29,13 @@ impl CountsCommand {
         context: &Context,
         interaction: &ApplicationCommandInteraction<'_>,
     ) -> Result<()> {
+        interaction
+            .context
+            .defer(DeferInteractionPayload {
+                ephemeral: false,
+            })
+            .await?;
+
         let Some(database_guild) = context.database.get_guild(interaction.guild_id).await else {
             return Err(Error::Custom("Please kick and invite Sakura.".to_owned()))
         };
@@ -84,7 +95,15 @@ impl CountsCommand {
             .collect::<Vec<(Id<ChannelMarker>, String, i32)>>();
         let mut embed_builder = EmbedBuilder::new().color(0xF8F8FF);
 
-        sorted_category_channels.sort_unstable_by(|a, b| a.2.cmp(&b.2));
+        sorted_category_channels.sort_unstable_by(|a, b| {
+            let sort_ordering = a.2.cmp(&b.2);
+
+            if !sort_ordering.is_eq() {
+                a.1.cmp(&b.1)
+            } else {
+                sort_ordering
+            }
+        });
 
         for sorted_category_channel in sorted_category_channels {
             let (announcement, text, ignored) = unsorted_category_counts

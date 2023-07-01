@@ -7,6 +7,7 @@ use twilight_util::builder::embed::EmbedBuilder;
 
 use crate::{
     types::{
+        cache::GuildUpdate,
         context::Context,
         interaction::{
             ApplicationCommandInteraction,
@@ -138,9 +139,11 @@ impl ConfigAddCategoryChannelCommand {
 
         context.cache.update_guild(
             interaction.guild_id,
-            Some(false),
-            Some(updated_category_channel_ids),
-            None,
+            GuildUpdate {
+                in_check: Some(false),
+                invite_check_category_ids: Some(updated_category_channel_ids),
+                ..Default::default()
+            },
         );
 
         let embed = EmbedBuilder::new()

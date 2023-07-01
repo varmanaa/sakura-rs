@@ -10,14 +10,16 @@ use twilight_model::{
     },
 };
 
-use crate::types::cache::{Cache, Guild};
+use crate::types::cache::{Cache, Guild, GuildUpdate};
 
 impl Cache {
     pub fn get_guild(
         &self,
         guild_id: Id<GuildMarker>,
     ) -> Option<Arc<Guild>> {
-        self.guilds.read().get(&guild_id).cloned()
+        self.guilds
+            .try_read()
+            .map_or(None, |read_lock| read_lock.get(&guild_id).cloned())
     }
 
     pub fn insert_guild(
@@ -80,23 +82,22 @@ impl Cache {
     pub fn update_guild(
         &self,
         guild_id: Id<GuildMarker>,
-        in_check: Option<bool>,
-        invite_check_category_ids: Option<HashSet<Id<ChannelMarker>>>,
-        name: Option<String>,
+        update: GuildUpdate,
     ) {
-        if let Some(guild) = self.get_guild(guild_id) {
+        if let Some(old_guild) = self.get_guild(guild_id) {
             self.guilds.write().insert(
                 guild_id,
                 Arc::new(Guild {
-                    channel_ids: RwLock::new(guild.channel_ids.read().clone()),
+                    channel_ids: RwLock::new(old_guild.channel_ids.read().clone()),
                     guild_id,
-                    in_check: in_check.unwrap_or(guild.in_check),
+                    in_check: update.in_check.unwrap_or(old_guild.in_check),
                     invite_check_category_ids: RwLock::new(
-                        invite_check_category_ids
-                            .unwrap_or(guild.invite_check_category_ids.read().clone()),
+                        update
+                            .invite_check_category_ids
+                            .unwrap_or(old_guild.invite_check_category_ids.read().clone()),
                     ),
-                    name: name.unwrap_or(guild.name.clone()),
-                    role_ids: RwLock::new(guild.role_ids.read().clone()),
+                    name: update.name.unwrap_or(old_guild.name.clone()),
+                    role_ids: RwLock::new(old_guild.role_ids.read().clone()),
                 }),
             );
         }

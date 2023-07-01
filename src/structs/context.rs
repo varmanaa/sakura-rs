@@ -1,8 +1,10 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
+use parking_lot::RwLock;
 use twilight_http::{client::InteractionClient, Client};
 use twilight_model::id::{marker::ApplicationMarker, Id};
 
+use crate::types::context::Shard;
 use crate::types::{cache::Cache, context::Context, database::Database};
 
 impl Context {
@@ -21,6 +23,14 @@ impl Context {
             cache,
             database,
             http,
+            shards: RwLock::new(HashMap::new()),
         }
+    }
+
+    pub fn shard(
+        &self,
+        shard_id: u64,
+    ) -> Option<Arc<Shard>> {
+        self.shards.read().get(&shard_id).cloned()
     }
 }

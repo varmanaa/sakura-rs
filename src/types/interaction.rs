@@ -13,6 +13,7 @@ pub struct ApplicationCommandInteraction<'a> {
     pub channel_id: Id<ChannelMarker>,
     pub data: Box<CommandData>,
     pub guild_id: Id<GuildMarker>,
+    pub shard_id: u64,
 }
 
 pub struct ApplicationCommandInteractionContext<'a> {
