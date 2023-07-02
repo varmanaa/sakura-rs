@@ -122,12 +122,13 @@ async fn handle_unchecked_invites_task(context: Arc<Context>) -> Result<()> {
 async fn handle_recycle_invites_task(context: Arc<Context>) -> Result<()> {
     context.database.remove_old_invites().await?;
 
-    let old_ids = context.database.remove_old_messages(22).await?;
+    let removed_ids = context.database.remove_old_messages().await?;
 
-    for (guild_id, channel_ids) in old_ids.into_iter() {
+    for (guild_id, channel_ids) in removed_ids.into_iter() {
         let Some(cached_guild) = context.cache.get_guild(guild_id) else {
             continue
         };
+
         let cached_guild_invite_check_category_ids =
             cached_guild.invite_check_category_ids.read().clone();
 

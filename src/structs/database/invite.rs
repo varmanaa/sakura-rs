@@ -156,7 +156,7 @@ impl Database {
             DELETE FROM
                 public.invite
             WHERE
-                created_at >= CURRENT_TIMESTAMP - INTERVAL '22 days';
+                created_at >= CURRENT_TIMESTAMP - INTERVAL '14 days';
         ";
 
         let params: &[&(dyn ToSql + Sync)] = &[];

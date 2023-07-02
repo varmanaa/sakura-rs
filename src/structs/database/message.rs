@@ -110,8 +110,7 @@ impl Database {
     }
 
     pub async fn remove_old_messages(
-        &self,
-        age: u8,
+        &self
     ) -> Result<HashMap<Id<GuildMarker>, HashSet<Id<ChannelMarker>>>> {
         let client = self.pool.get().await?;
 
@@ -119,28 +118,28 @@ impl Database {
             DELETE FROM
                 public.message
             WHERE
-                created_at >= CURRENT_TIMESTAMP - INTERVAL '$1 days'
+                created_at >= CURRENT_TIMESTAMP - INTERVAL '14 days'
             RETURNING
                 guild_id,
                 channel_id;
         ";
 
-        let params: &[&(dyn ToSql + Sync)] = &[&(age as i8)];
-        let mut old_ids: HashMap<Id<GuildMarker>, HashSet<Id<ChannelMarker>>> = HashMap::new();
+        let params: &[&(dyn ToSql + Sync)] = &[];
+        let mut removed_ids: HashMap<Id<GuildMarker>, HashSet<Id<ChannelMarker>>> = HashMap::new();
 
         if let Ok(rows) = client.query(statement, params).await {
             for row in rows {
                 let guild_id: Id<GuildMarker> = Id::new(row.get::<_, i64>("guild_id") as u64);
-                let channel_id: Id<ChannelMarker> = Id::new(row.get::<_, i64>("guild_id") as u64);
-                let guild_channel_ids = match old_ids.get(&guild_id).cloned() {
-                    Some(channel_ids) => channel_ids,
-                    None => HashSet::from_iter(iter::once(channel_id)),
-                };
+                let channel_id: Id<ChannelMarker> = Id::new(row.get::<_, i64>("channel_id") as u64);
 
-                old_ids.insert(guild_id, guild_channel_ids);
+                if let Some(channel_ids) = removed_ids.get_mut(&guild_id) {
+                    channel_ids.insert(channel_id);
+                } else {
+                    removed_ids.insert(guild_id, HashSet::from_iter(iter::once(channel_id)));
+                }
             }
         }
 
-        Ok(old_ids)
+        Ok(removed_ids)
     }
 }
