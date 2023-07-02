@@ -13,11 +13,18 @@ pub async fn handle_guild_create(
     payload: GuildCreate,
 ) -> Result<()> {
     let guild_id = payload.id;
-    let invite_check_category_ids = context
-        .database
-        .get_guild(guild_id)
-        .await
-        .map_or(HashSet::new(), |guild| guild.category_channel_ids);
+    let invite_check_category_ids =
+        if let Some(database_guild) = context.database.get_guild(guild_id).await {
+            database_guild.category_channel_ids
+        } else {
+            context
+                .database
+                .insert_guild_create_event(GuildCreatePayload {
+                    guild_id: guild_id.get() as i64,
+                })
+                .await?;
+            HashSet::new()
+        };
     let current_user_id: Id<UserMarker> = context.application_id.cast();
     let (communication_disabled_until, role_ids) = payload
         .0
@@ -50,12 +57,6 @@ pub async fn handle_guild_create(
         role_ids,
     );
     context.database.insert_guild(guild_id).await?;
-    context
-        .database
-        .insert_guild_create_event(GuildCreatePayload {
-            guild_id: guild_id.get() as i64,
-        })
-        .await?;
 
     Ok(())
 }
