@@ -10,8 +10,8 @@ use crate::types::{
 
 #[derive(CommandOption, CreateOption)]
 enum Query {
-    #[option(name = "Documents", value = "documents")]
-    Documents,
+    #[option(name = "Links", value = "links")]
+    Links,
     #[option(name = "Setup", value = "setup")]
     Setup,
     #[option(name = "Source code", value = "source-code")]
@@ -40,7 +40,7 @@ impl InfoCommand {
 
         let options = InfoCommand::from_interaction(interaction.input_data())?;
         let (components, embeds) = match options.query {
-            Query::Documents => {
+            Query::Links => {
                 let components = vec![Component::ActionRow(ActionRow {
                     components: vec![
                         Component::Button(Button {
@@ -51,6 +51,16 @@ impl InfoCommand {
                             style: ButtonStyle::Link,
                             url: Some(
                                 "https://github.com/varmanaa/sakura-rs/blob/main/docs/PRIVACY_POLICY.md".to_owned(),
+                            ),
+                        }),
+                        Component::Button(Button {
+                            custom_id: None,
+                            disabled: false,
+                            emoji: None,
+                            label: Some("Support Server".to_owned()),
+                            style: ButtonStyle::Link,
+                            url: Some(
+                                "https://discord.gg/wtZurTFJdH".to_owned(),
                             ),
                         }),
                         Component::Button(Button {
