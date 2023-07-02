@@ -294,6 +294,7 @@ impl CheckCommand {
                 channels: total_channels as i64,
                 valid_invites: total_valid as i64,
                 invalid_invites: total_invalid as i64,
+                unknown_invites: total_unknown as i64,
             })
             .await?;
 

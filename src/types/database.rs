@@ -50,4 +50,5 @@ pub struct InviteCheckCreatePayload {
     pub channels: i64,
     pub valid_invites: i64,
     pub invalid_invites: i64,
+    pub unknown_invites: i64,
 }
