@@ -4,13 +4,14 @@ use twilight_util::builder::embed::EmbedBuilder;
 
 use crate::{
     types::{
+        cache::GuildUpdate,
         context::Context,
         interaction::{
             ApplicationCommandInteraction,
             DeferInteractionPayload,
             UpdateResponsePayload,
         },
-        Result, cache::GuildUpdate,
+        Result,
     },
     utility::error::Error,
 };
