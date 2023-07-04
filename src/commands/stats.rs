@@ -40,17 +40,14 @@ impl StatsCommand {
         } else {
             "".to_owned()
         };
-        let uptime_description = if let Some(shard) = context.shard(interaction.shard_id) {
-            shard.ready_at.map_or("".to_owned(), |ready_at| {
-                let uptime_string = humanize(
-                    ((OffsetDateTime::now_utc().unix_timestamp() - ready_at.unix_timestamp())
-                        * 1000)
-                        .try_into()
-                        .unwrap(),
-                );
+        let uptime_description = if let Some(ready_at) = context.ready_at() {
+            let uptime_string = humanize(
+                ((OffsetDateTime::now_utc().unix_timestamp() - ready_at.unix_timestamp()) * 1000)
+                    .try_into()
+                    .unwrap(),
+            );
 
-                format!("**Uptime:** {uptime_string}")
-            })
+            format!("**Uptime:** {uptime_string}")
         } else {
             "".to_owned()
         };

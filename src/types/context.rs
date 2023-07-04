@@ -13,12 +13,6 @@ pub struct Context {
     pub cache: Cache,
     pub database: Database,
     pub http: Arc<Client>,
-    pub shards: RwLock<HashMap<u64, Arc<Shard>>>,
-}
-
-#[derive(Debug)]
-pub struct Shard {
-    pub latency: Latency,
-    pub ready_at: Option<OffsetDateTime>,
-    pub shard_id: u64,
+    pub latencies: RwLock<HashMap<u64, Arc<Latency>>>,
+    pub ready_at: RwLock<Option<OffsetDateTime>>,
 }

@@ -35,8 +35,8 @@ impl LatencyCommand {
             - ((interaction.context.id.get() >> 22) + 1_420_070_400_000))
             .to_string();
         let rtt_description = format!("🚀 **RTT**: {} ms", add_commas(rtt_ms));
-        let shard_ping_description = if let Some(shard) = context.shard(interaction.shard_id) {
-            shard.latency.average().map_or("".to_owned(), |duration| {
+        let shard_ping_description = if let Some(latency) = context.latency(interaction.shard_id) {
+            latency.average().map_or("".to_owned(), |duration| {
                 let duration_ms = duration.as_millis().to_string();
 
                 format!("🏓 **Shard:** {} ms", add_commas(duration_ms))

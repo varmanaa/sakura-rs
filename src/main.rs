@@ -5,45 +5,37 @@ mod tasks;
 mod types;
 mod utility;
 
-use std::{env, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use dotenv::dotenv;
 use futures::StreamExt;
-use time::OffsetDateTime;
-use twilight_gateway::{
-    stream::{self, ShardEventStream},
-    Config,
-    Intents,
-};
+use twilight_gateway::{error::ReceiveMessageErrorType, stream::ShardEventStream};
 use twilight_http::Client;
-use types::context::Shard;
+use twilight_model::gateway::CloseCode;
+
+use crate::{
+    types::{cache::Cache, context::Context, database::Database},
+    utility::{
+        constants::BOT_TOKEN,
+        gateway::{connect, reconnect},
+    },
+};
 
 #[tokio::main]
 async fn main() -> types::Result<()> {
+    tracing_subscriber::fmt::init();
+
     dotenv().ok();
 
-    let token = env::var("BOT_TOKEN")?;
-    let http = Arc::new(Client::new(token.clone()));
-    let config = Config::new(
-        token.clone(),
-        Intents::GUILDS | Intents::GUILD_MESSAGES | Intents::MESSAGE_CONTENT,
-    );
-    let mut shards = stream::create_recommended(&http, config, |_, builder| builder.build())
-        .await?
-        .collect::<Vec<_>>();
-    let mut stream = ShardEventStream::new(shards.iter_mut());
+    let http = Client::new(BOT_TOKEN.to_owned());
     let application_id = http.current_user_application().await?.model().await?.id;
-    let cache = types::cache::Cache::new();
-    let database = types::database::Database::new()?;
+    let cache = Cache::new();
+    let database = Database::new()?;
+    let mut shards = connect(&http, HashMap::default()).await?;
+    let context = Arc::new(Context::new(application_id, cache, database, http));
 
-    database.create_tables().await?;
+    context.database.create_tables().await?;
 
-    let context = Arc::new(types::context::Context::new(
-        application_id,
-        cache,
-        database,
-        http,
-    ));
     let commands = commands::get_commands();
 
     context
@@ -51,51 +43,62 @@ async fn main() -> types::Result<()> {
         .set_global_commands(&commands)
         .await?;
 
-    let task_context = context.clone();
+    let task_context = Arc::clone(&context);
 
     tokio::spawn(async move {
         tasks::handle_tasks(task_context).await.unwrap();
     });
 
-    loop {
-        let (shard_ref, event) = match stream.next().await {
-            None => break,
-            Some((_, Err(source))) => {
-                if source.is_fatal() {
-                    break;
+    'outer: loop {
+        let mut stream = ShardEventStream::new(shards.iter_mut());
+
+        'inner: loop {
+            let error = match stream.next().await {
+                None => return Ok(()),
+                Some((_, Err(error))) => {
+                    tracing::info!(?error, "Error receiving event");
+
+                    error
                 }
+                Some((shard_ref, Ok(event))) => {
+                    tracing::info!("Received event - {:#?}", event.kind());
+                    tracing::info!("Shard status - {:#?}", shard_ref.status());
 
-                continue;
+                    let shard_id = shard_ref.id().number();
+
+                    context
+                        .latencies
+                        .write()
+                        .insert(shard_id, Arc::new(shard_ref.latency().clone()));
+
+                    let event_context = Arc::clone(&context);
+
+                    tokio::spawn(async move {
+                        events::handle_event(event_context, shard_id, event)
+                            .await
+                            .unwrap()
+                    });
+
+                    continue 'inner;
+                }
+            };
+            let should_reconnect = matches!(
+                error.kind(),
+                ReceiveMessageErrorType::FatallyClosed {
+                    close_code: CloseCode::ShardingRequired | CloseCode::UnknownError
+                }
+            );
+
+            if should_reconnect {
+                drop(stream);
+
+                reconnect(&context.http, &mut shards).await?;
+
+                continue 'outer;
             }
-            Some((shard_ref, Ok(event))) => (shard_ref, event),
-        };
-        let shard_id = shard_ref.id().number();
-        let ready_at = if shard_ref.status().is_connected() {
-            match context.shards.read().get(&shard_id) {
-                Some(shard) if shard.ready_at.is_some() => shard.ready_at,
-                _ => Some(OffsetDateTime::now_utc()),
+            if error.is_fatal() {
+                return Ok(());
             }
-        } else {
-            None
-        };
-
-        context.shards.write().insert(
-            shard_id,
-            Arc::new(Shard {
-                latency: shard_ref.latency().clone(),
-                ready_at,
-                shard_id,
-            }),
-        );
-
-        let event_context = context.clone();
-
-        tokio::spawn(async move {
-            events::handle_event(event_context, shard_id, event)
-                .await
-                .unwrap();
-        });
+        }
     }
-
-    Ok(())
 }
