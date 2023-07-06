@@ -57,7 +57,7 @@ impl CountsCommand {
                     continue;
                 };
 
-                if database_guild.category_channel_ids.contains(&parent_id) {
+                if !database_guild.category_channel_ids.contains(&parent_id) {
                     continue;
                 }
 

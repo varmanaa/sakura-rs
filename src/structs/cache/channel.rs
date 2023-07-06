@@ -68,7 +68,7 @@ impl Cache {
         channel_id: Id<ChannelMarker>,
         update: ChannelUpdate,
     ) {
-        if let Some(old_channel) = self.channels.write().remove(&channel_id) {
+        if let Some(old_channel) = self.get_channel(channel_id) {
             self.channels.write().insert(
                 channel_id,
                 Arc::new(Channel {
