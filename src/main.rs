@@ -23,8 +23,6 @@ use crate::{
 
 #[tokio::main]
 async fn main() -> types::Result<()> {
-    tracing_subscriber::fmt::init();
-
     dotenv().ok();
 
     let http = Client::new(BOT_TOKEN.to_owned());
@@ -55,15 +53,8 @@ async fn main() -> types::Result<()> {
         'inner: loop {
             let error = match stream.next().await {
                 None => return Ok(()),
-                Some((_, Err(error))) => {
-                    tracing::info!(?error, "Error receiving event");
-
-                    error
-                }
+                Some((_, Err(error))) => error,
                 Some((shard_ref, Ok(event))) => {
-                    tracing::info!("Received event - {:#?}", event.kind());
-                    tracing::info!("Shard status - {:#?}", shard_ref.status());
-
                     let shard_id = shard_ref.id().number();
 
                     context

@@ -15,10 +15,9 @@ pub fn handle_ready(
 
     *context.ready_at.write() = Some(OffsetDateTime::now_utc());
 
-    tracing::info!(
+    println!(
         "{}#{:04} is ready!",
-        payload.user.name,
-        payload.user.discriminator
+        payload.user.name, payload.user.discriminator
     );
 
     Ok(())
