@@ -1,5 +1,6 @@
 use std::{cmp::max, collections::HashMap, time::Duration};
 
+use thousands::Separable;
 use time::OffsetDateTime;
 use tokio::time::sleep;
 use twilight_interactions::command::{CommandModel, CreateCommand};
@@ -18,7 +19,7 @@ use crate::{
         },
         Result,
     },
-    utility::{decimal::add_commas, error::Error, time::humanize},
+    utility::{error::Error, time::humanize},
 };
 
 #[derive(CommandModel, CreateCommand)]
@@ -249,11 +250,11 @@ impl CheckCommand {
                 vec![
                     format!(
                         "- **{}** channel(s) checked",
-                        add_commas(total_channels.to_string())
+                        total_channels.separate_with_commas()
                     ),
                     format!(
                         "- **{}** invite(s) checked",
-                        add_commas((total_valid + total_invalid + total_unknown).to_string())
+                        (total_valid + total_invalid + total_unknown).separate_with_commas()
                     ),
                     format!(
                         "- **{total_valid}** ({:.2}%) valid invite(s)",

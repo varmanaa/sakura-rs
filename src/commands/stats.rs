@@ -1,4 +1,5 @@
 use memory_stats::memory_stats;
+use thousands::Separable;
 use time::OffsetDateTime;
 use twilight_interactions::command::{CommandModel, CreateCommand};
 use twilight_util::builder::embed::EmbedBuilder;
@@ -13,7 +14,7 @@ use crate::{
         },
         Result,
     },
-    utility::{decimal::add_commas, time::humanize},
+    utility::time::humanize,
 };
 
 #[derive(CommandModel, CreateCommand)]
@@ -33,10 +34,10 @@ impl StatsCommand {
             .await?;
 
         let memory_description = if let Some(usage) = memory_stats() {
-            let memory_string =
-                add_commas(format!("{:.2}", (usage.physical_mem as f32 / 1_000_000f32)));
-
-            format!("**Memory usage:** {memory_string} MB")
+            format!(
+                "**Memory usage:** {} MB",
+                format!("{:.2}", (usage.physical_mem as f32) / 1_000_000f32).separate_with_commas()
+            )
         } else {
             "".to_owned()
         };
@@ -54,11 +55,11 @@ impl StatsCommand {
         let description = vec![
             format!(
                 "**Guilds:** {}",
-                add_commas(context.cache.guilds.read().len().to_string())
+                context.cache.guilds.read().len().separate_with_commas()
             ),
             format!(
                 "**Channels:** {}",
-                add_commas(context.cache.channels.read().len().to_string())
+                context.cache.channels.read().len().separate_with_commas()
             ),
             memory_description,
             uptime_description,
