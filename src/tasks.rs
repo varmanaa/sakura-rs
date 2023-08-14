@@ -15,14 +15,12 @@ pub async fn handle_tasks(context: Arc<Context>) -> Result<()> {
     sleep(Duration::from_secs(60)).await;
 
     let scheduler: JobScheduler = JobScheduler::new().await?;
-    let unchecked_invites_task_context_one = context.clone();
-    let unchecked_invites_task_context_two = context.clone();
-    let unchecked_invites_task_context_three = context.clone();
+    let unchecked_invites_task_context = context.clone();
     let recycle_invites_task_context = context.clone();
 
     scheduler
-        .add(Job::new_async("*/20 * 1-23 * * 1", move |_uuid, _lock| {
-            let unchecked_invites_task_context = unchecked_invites_task_context_one.clone();
+        .add(Job::new_async("*/20 1-59 * * * *", move |_uuid, _lock| {
+            let unchecked_invites_task_context = unchecked_invites_task_context.clone();
 
             Box::pin(async move {
                 handle_unchecked_invites_task(unchecked_invites_task_context)
@@ -33,31 +31,7 @@ pub async fn handle_tasks(context: Arc<Context>) -> Result<()> {
         .await?;
 
     scheduler
-        .add(Job::new_async("*/20 * * * * 2-5", move |_uuid, _lock| {
-            let unchecked_invites_task_context = unchecked_invites_task_context_two.clone();
-
-            Box::pin(async move {
-                handle_unchecked_invites_task(unchecked_invites_task_context)
-                    .await
-                    .unwrap();
-            })
-        })?)
-        .await?;
-
-    scheduler
-        .add(Job::new_async("*/20 * 0-22 * * 6", move |_uuid, _lock| {
-            let unchecked_invites_task_context = unchecked_invites_task_context_three.clone();
-
-            Box::pin(async move {
-                handle_unchecked_invites_task(unchecked_invites_task_context)
-                    .await
-                    .unwrap();
-            })
-        })?)
-        .await?;
-
-    scheduler
-        .add(Job::new_async("0 0 0 * * 7", move |_uuid, _lock| {
+        .add(Job::new_async("0 0 0 * * *", move |_uuid, _lock| {
             let recycle_invites_task_context = recycle_invites_task_context.clone();
 
             Box::pin(async move {
@@ -75,7 +49,7 @@ pub async fn handle_tasks(context: Arc<Context>) -> Result<()> {
 }
 
 async fn handle_unchecked_invites_task(context: Arc<Context>) -> Result<()> {
-    if let Ok(unchecked_invite_codes) = context.database.get_unchecked_invites(20).await {
+    if let Ok(unchecked_invite_codes) = context.database.get_unchecked_invites().await {
         for unchecked_invite_code in unchecked_invite_codes {
             let (is_permalink, is_valid, expires_at) = if let Ok(response) = context
                 .http
@@ -128,7 +102,6 @@ async fn handle_recycle_invites_task(context: Arc<Context>) -> Result<()> {
         let Some(cached_guild) = context.cache.get_guild(guild_id) else {
             continue
         };
-
         let cached_guild_invite_check_category_ids =
             cached_guild.invite_check_category_ids.read().clone();
 

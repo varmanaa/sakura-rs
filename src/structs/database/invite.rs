@@ -62,10 +62,7 @@ impl Database {
         Ok(invite_check)
     }
 
-    pub async fn get_unchecked_invites(
-        &self,
-        limit: u64,
-    ) -> Result<Vec<String>> {
+    pub async fn get_unchecked_invites(&self) -> Result<Vec<String>> {
         let client = self.pool.get().await?;
 
         let statement = "
@@ -77,9 +74,10 @@ impl Database {
                 updated_at IS NULL
             ORDER BY
                 created_at
-            LIMIT $1;
+            LIMIT
+                20;
         ";
-        let params: &[&(dyn ToSql + Sync)] = &[&(limit as i64)];
+        let params: &[&(dyn ToSql + Sync)] = &[];
         let rows = client.query(statement, params).await?;
         let codes = rows
             .into_iter()

@@ -27,7 +27,7 @@ We do not share your information with anyone, except to either those you give co
 
 ## Data retention
 
-We retain your information for as long as Sakura remains active in your guild or server. Invite codes (at rest) will only exist for a maximum of 22 days. You may request that we delete your information at any time. If you would like to opt-out of providing the above mentioned information, request access to your information, or request that we delete your information, please join [the support server](https://discord.gg/wtZurTFJdH) and contact @scriptuser.
+We retain your information for as long as Sakura remains active in your guild or server. Invite codes (at rest) will only exist for a maximum of 14 days. You may request that we delete your information at any time. If you would like to opt-out of providing the above mentioned information, request access to your information, or request that we delete your information, please join [the support server](https://discord.gg/wtZurTFJdH) and contact @scriptuser.
 
 ## How we protect your infomation
 
