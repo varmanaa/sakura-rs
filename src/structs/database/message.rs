@@ -115,7 +115,7 @@ impl Database {
         let client = self.pool.get().await?;
 
         let statement = "
-            WITH message_to_delete (
+            WITH message_to_delete AS (
                 SELECT
                     guild_id,
                     channel_id,
@@ -125,12 +125,12 @@ impl Database {
                 WHERE
                     created_at <= CURRENT_TIMESTAMP - INTERVAL '14 days'
                 LIMIT
-                    100
+                    50
             )
             DELETE FROM
                 public.message
             WHERE
-                (guild_id, channel_id, message_id) IN message_to_delete
+                (guild_id, channel_id, message_id) IN (SELECT * FROM message_to_delete)
             RETURNING
                 guild_id,
                 channel_id;

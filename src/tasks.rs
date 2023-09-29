@@ -31,7 +31,7 @@ pub async fn handle_tasks(context: Arc<Context>) -> Result<()> {
         .await?;
 
     scheduler
-        .add(Job::new_async("0 0 0 * * *", move |_uuid, _lock| {
+        .add(Job::new_async("0 0 * * * *", move |_uuid, _lock| {
             let recycle_invites_task_context = recycle_invites_task_context.clone();
 
             Box::pin(async move {
@@ -100,7 +100,7 @@ async fn handle_recycle_invites_task(context: Arc<Context>) -> Result<()> {
 
     for (guild_id, channel_ids) in removed_ids.into_iter() {
         let Some(cached_guild) = context.cache.get_guild(guild_id) else {
-            continue
+            continue;
         };
         let cached_guild_invite_check_category_ids =
             cached_guild.invite_check_category_ids.read().clone();
@@ -117,10 +117,10 @@ async fn handle_recycle_invites_task(context: Arc<Context>) -> Result<()> {
             sleep(Duration::from_millis(500)).await;
 
             let Some(channel) = context.cache.get_channel(channel_id) else {
-                continue
+                continue;
             };
             let Some(parent_id) = channel.parent_id else {
-                continue
+                continue;
             };
 
             if !cached_guild_invite_check_category_ids.contains(&parent_id) {

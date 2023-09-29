@@ -99,7 +99,13 @@ impl Database {
             VALUES
                 ($1)
             ON CONFLICT (code)
-            DO NOTHING;
+            DO UPDATE
+            SET
+                is_permalink = NULL,
+                is_valid = NULL,
+                expires_at = NULL,
+                created_at = CURRENT_TIMESTAMP,
+                updated_at = NULL;
         ";
 
         let params: &[&(dyn ToSql + Sync)] = &[&code];
@@ -154,7 +160,7 @@ impl Database {
             DELETE FROM
                 public.invite
             WHERE
-                created_at >= CURRENT_TIMESTAMP - INTERVAL '14 days';
+                created_at <= CURRENT_TIMESTAMP - INTERVAL '14 days';
         ";
 
         let params: &[&(dyn ToSql + Sync)] = &[];
