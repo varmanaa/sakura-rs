@@ -42,7 +42,7 @@ impl CheckCommand {
             context.cache.get_guild(interaction.guild_id),
             context.database.get_guild(interaction.guild_id).await,
         ) else {
-            return Err(Error::Custom("Please kick and invite Sakura.".to_owned()))
+            return Err(Error::Custom("Please kick and invite Sakura.".to_owned()));
         };
 
         if cached_guild.in_check {
@@ -62,7 +62,7 @@ impl CheckCommand {
         let Some(results_channel_id) = database_guild.results_channel_id else {
             return Err(Error::Custom(
                 "You have not set a \"results channel\".".to_owned(),
-            ))
+            ));
         };
 
         if context.cache.get_channel(results_channel_id).is_none() {
@@ -131,7 +131,7 @@ impl CheckCommand {
         sorted_category_channels.sort_unstable_by(|a, b| {
             let sort_ordering = a.2.cmp(&b.2);
 
-            if !sort_ordering.is_eq() {
+            if sort_ordering.is_eq() {
                 a.1.cmp(&b.1)
             } else {
                 sort_ordering
@@ -145,7 +145,7 @@ impl CheckCommand {
 
         for channel_id in cached_guild.channel_ids.read().clone().into_iter() {
             let Some(channel) = context.cache.get_channel(channel_id) else {
-                continue
+                continue;
             };
             let Some(parent_id) = channel.parent_id else {
                 continue;
@@ -160,7 +160,8 @@ impl CheckCommand {
                     .insert(parent_id, vec![(channel_id, channel.position)]);
             }
 
-            let Some(child_channels_in_category) = child_channels_in_categories.get_mut(&parent_id) else {
+            let Some(child_channels_in_category) = child_channels_in_categories.get_mut(&parent_id)
+            else {
                 continue;
             };
 
